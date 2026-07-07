@@ -1,153 +1,186 @@
 import React, { useMemo, useState } from 'react';
 import ChatSidebar from '../Components/ChatSidebar';
 
-// targetUser: Data profile orang lain yang diklik/sedang dilihat
-// products: Semua produk untuk di-filter berdasarkan creator
 export default function PublicProfile({ navigateTo, targetUser, products = [], auth }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const profileBackgroundUrl = targetUser?.profile_background || '';
-  
-  // Normalize ID - handle both 'id' dan 'idUser' fields
-  const getCurrentUserId = () => auth?.user?.id || auth?.user?.idUser;
-  const getTargetUserId = () => targetUser?.idUser || targetUser?.id;
-  
-  // Check if current user is the profile owner
-  const isOwnProfile = () => {
-    const currentId = getCurrentUserId();
-    const targetId = getTargetUserId();
-    return currentId && targetId && currentId === targetId;
-  };
-  
-  // Filter produk hanya milik creator yang sedang dilihat
+
+  const profileBackgroundUrl = useMemo(() => {
+    return (
+      targetUser?.profile_background ||
+      targetUser?.profileBackground ||
+      targetUser?.user?.profile_background ||
+      targetUser?.user?.profileBackground ||
+      ''
+    );
+  }, [targetUser]);
+
+  const currentUserId = auth?.user?.idUser || auth?.user?.id;
+  const targetUserId = targetUser?.idUser || targetUser?.id;
+  const isOwnProfile = Boolean(currentUserId && targetUserId && currentUserId === targetUserId);
+
   const creatorProducts = useMemo(() => {
     if (!targetUser) return [];
-    
-    const creatorId = getTargetUserId();
+
+    const creatorId = targetUserId;
     if (!creatorId) return [];
-    
-    return products.filter(product => {
-      const productCreatorId = product.user?.idUser || product.user?.id;
+
+    return products.filter((product) => {
+      const productCreatorId = product?.user?.idUser || product?.user?.id;
       return productCreatorId === creatorId;
     });
-  }, [targetUser, products]);
+  }, [products, targetUser, targetUserId]);
 
   return (
-    <div className="w-full min-h-screen bg-white text-neutral-900 flex flex-col justify-between">
-      {/* Header Publik */}
-      <header className="bg-neutral-950 text-white p-4 flex justify-between items-center border-b-4 border-neutral-950">
-        <div onClick={() => navigateTo('explore')} className="font-black tracking-wider text-sm uppercase cursor-pointer">ART VIBES CREATIVE</div>
-        <button onClick={() => navigateTo('explore')} className="bg-white text-neutral-950 font-black px-4 py-1.5 text-xs uppercase border-2 border-white hover:bg-neutral-100 transition cursor-pointer">Jelajahi Karya</button>
+    <div className="flex min-h-screen w-full flex-col justify-between bg-white text-neutral-900">
+      <header className="flex items-center justify-between border-b-4 border-neutral-950 bg-neutral-950 p-4 text-white">
+        <div onClick={() => navigateTo('explore')} className="cursor-pointer text-sm font-black uppercase tracking-wider">
+          ART VIBES CREATIVE
+        </div>
+        <button
+          onClick={() => navigateTo('explore')}
+          className="cursor-pointer border-2 border-white bg-white px-4 py-1.5 text-xs font-black uppercase text-neutral-950 transition hover:bg-neutral-100"
+        >
+          Jelajahi Karya
+        </button>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 w-full flex-1 my-8 space-y-6">
+      <main className="mx-auto mt-0 mb-8 flex w-full max-w-7xl flex-1 flex-col space-y-6 px-6">
         
-        <button 
-          onClick={() => navigateTo('explore')} 
-          className="flex items-center gap-2 text-neutral-900 hover:text-neutral-600 font-black text-xs uppercase tracking-wider transition cursor-pointer"
-        >
-          ← Kembali ke Galeri Utama
-        </button>
 
-        {/* CONTAINER HERO / PUBLIC PROFILE INFO */}
-        <div className="relative overflow-hidden rounded-3xl">
-          {profileBackgroundUrl && (
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage: `url('${profileBackgroundUrl}')`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                opacity: 0.92,
-                filter: 'brightness(0.92)',
-              }}
-            />
-          )}
-          <div className={`relative border-4 border-neutral-950 p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-4 ${profileBackgroundUrl ? 'bg-white/80' : 'bg-white'}`}>
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div className="flex items-center gap-5 flex-1">
-              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-neutral-950 shrink-0 bg-neutral-200">
-                <img src={targetUser?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"} alt="avatar" className="w-full h-full object-cover" />
+        <div className="relative overflow-hidden" style={{ marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)', marginTop: '-4px' }}>
+          <div className="relative w-full">
+            {profileBackgroundUrl && (
+              <div
+                className="absolute left-0 right-0 top-0 h-48 sm:h-64 md:h-72 bg-cover bg-center"
+                style={{
+                  backgroundImage: `url('${profileBackgroundUrl}')`,
+                }}
+              />
+            )}
+            <div className="absolute left-0 right-0 top-0 h-48 sm:h-64 md:h-72 bg-linear-to-t from-black/65 via-black/10 to-transparent" />
+
+            <div className="relative h-48 sm:h-64 md:h-72" />
+
+            <div className="relative mx-auto -mt-14 w-full max-w-7xl rounded-4xl border border-neutral-200 bg-white px-6 py-8 shadow-[0_35px_90px_-45px_rgba(15,23,42,0.25)] sm:px-10 sm:py-10">
+              <div className="absolute left-8 top-0 z-30 -translate-y-1/2">
+                <div className="h-28 w-28 overflow-hidden rounded-full border-8 border-white shadow-[0_0_0_4px_rgba(0,0,0,0.12)]">
+                  <img
+                    src={targetUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'}
+                    alt="avatar"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
               </div>
-              <div className="space-y-1 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-2xl font-black uppercase tracking-tight">{targetUser?.name || 'FAHMI'}</h1>
-                  <span className="bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5">Verified Creator</span>
-                </div>
-                <div className="bg-neutral-100 border border-neutral-300 px-2 py-1 font-mono text-xs text-neutral-600 inline-block">
-                  Wallet: {targetUser?.walletAddress || '0x0000...0000'}
-                </div>
-                {targetUser?.bio && (
-                  <div className="bg-amber-50 border-2 border-amber-200 p-3 rounded space-y-1">
-                    <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-amber-900">📝 Tentang Kreator</div>
-                    <p className="text-xs text-neutral-700 italic line-clamp-3">
-                      "{targetUser.bio}"
+              <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr] lg:gap-8">
+                <div className="space-y-6">
+                  <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="flex items-center gap-5 pl-12 sm:pl-28">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h1 className="text-3xl font-black uppercase tracking-tight text-neutral-950">{targetUser?.name || 'FAHMI'}</h1>
+                          <span className="rounded-full bg-emerald-600 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow-[0_6px_20px_-14px_rgba(16,185,129,0.8)]">
+                            Verified Creator
+                          </span>
+                        </div>
+                        <div className="inline-flex flex-wrap items-center gap-2 rounded-full border border-neutral-300 bg-neutral-100 px-3 py-1 text-[11px] font-mono text-neutral-600">
+                          Wallet: {targetUser?.wallet_address || targetUser?.walletAddress || '0x0000...0000'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={() => navigateTo('login')}
+                        className="min-w-35 rounded-3xl border-2 border-neutral-950 bg-amber-400 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-neutral-950 transition hover:bg-amber-500"
+                      >
+                        🔐 Login
+                      </button>
+                      {currentUserId && !isOwnProfile ? (
+                        <button
+                          onClick={() => setIsChatOpen(true)}
+                          className="min-w-35 rounded-3xl border-2 border-neutral-950 bg-neutral-950 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-white transition hover:bg-neutral-800"
+                          title="Buka chat dengan owner"
+                        >
+                          💬 Chat
+                        </button>
+                      ) : currentUserId && isOwnProfile ? (
+                        <div className="min-w-35 rounded-3xl border-2 border-neutral-300 bg-neutral-200 px-4 py-2 text-center text-[11px] font-black uppercase tracking-widest text-neutral-600">
+                          👤 Profile Anda
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="rounded-[1.75rem] border border-neutral-200 bg-slate-50/90 p-4 text-sm shadow-[0_20px_45px_-30px_rgba(15,23,42,0.7)]">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Status</div>
+                      <div className="mt-2 text-sm font-black uppercase text-neutral-950">Creator Aktif</div>
+                    </div>
+                    <div className="rounded-[1.75rem] border border-neutral-200 bg-slate-50/90 p-4 text-sm shadow-[0_20px_45px_-30px_rgba(15,23,42,0.7)]">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Koleksi</div>
+                      <div className="mt-2 text-sm font-black uppercase text-neutral-950">{creatorProducts.length} karya</div>
+                    </div>
+                    <div className="rounded-[1.75rem] border border-neutral-200 bg-slate-50/90 p-4 text-sm shadow-[0_20px_45px_-30px_rgba(15,23,42,0.7)]">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Profil</div>
+                      <div className="mt-2 text-sm font-black uppercase text-neutral-950">Publik Eksklusif</div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-4xl border border-neutral-200 bg-amber-50/95 p-5 text-sm text-neutral-700 shadow-[0_24px_80px_-50px_rgba(245,158,11,0.75)]">
+                    <div className="font-mono text-[10px] font-black uppercase tracking-widest text-amber-800">📝 Tentang Kreator</div>
+                    <p className="mt-3 text-xs leading-6 text-neutral-700">
+                      {targetUser?.bio || 'Mengintegrasikan estetika fisik museum klasik ke dalam mahakarya digital blockchain eksklusif.'}
                     </p>
                   </div>
-                )}
-                {!targetUser?.bio && (
-                  <p className="text-xs text-neutral-500 italic max-w-xl">
-                    "{targetUser?.bio || '"Mengintegrasikan estetika fisik museum klasik ke dalam mahakarya digital blockchain eksklusif."'}"
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2 shrink-0 w-full md:w-auto">
-              <div className="bg-blue-50 text-blue-700 border-2 border-blue-400 font-mono px-4 py-2 text-xs font-black uppercase tracking-wider rounded text-center">
-                👀 Galeri Publik Kreator
-              </div>
-              {/* TOMBOL CHAT MINI */}
-              {getCurrentUserId() && !isOwnProfile() ? (
-                <button
-                  onClick={() => setIsChatOpen(true)}
-                  className="bg-neutral-950 hover:bg-neutral-800 text-white border-2 border-neutral-950 font-black px-3 py-2 text-xs uppercase tracking-widest transition cursor-pointer shadow-[2px_2px_0px_0px_rgba(16,185,129,1)]"
-                  title="Buka chat dengan owner"
-                >
-                  💬 Chat
-                </button>
-              ) : getCurrentUserId() && isOwnProfile() ? (
-                <div className="bg-neutral-200 text-neutral-600 border-2 border-neutral-300 font-black px-3 py-2 text-xs uppercase tracking-widest text-center cursor-not-allowed">
-                  👤 Profile Anda
                 </div>
-              ) : (
-                <button
-                  onClick={() => navigateTo('login')}
-                  className="bg-amber-400 hover:bg-amber-500 text-neutral-950 border-2 border-neutral-950 font-black px-3 py-2 text-xs uppercase tracking-widest transition cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                >
-                  🔐 Login
-                </button>
-              )}
+
+                <div className="rounded-[2.5rem] border border-neutral-200 bg-white p-6 shadow-[0_24px_90px_-60px_rgba(0,0,0,0.55)]">
+                  <div className="flex items-center justify-between gap-3 text-xs uppercase tracking-widest text-neutral-500">
+                    <span className="font-black">Galeri Publik</span>
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">Live</span>
+                  </div>
+                  <div className="mt-6 space-y-4">
+                    <div className="rounded-3xl border border-neutral-200 bg-slate-50 p-4">
+                      <div className="text-[10px] uppercase tracking-widest text-neutral-500">Viewer</div>
+                      <div className="mt-2 text-lg font-black text-neutral-950">34.8K</div>
+                    </div>
+                    <div className="rounded-3xl border border-neutral-200 bg-slate-50 p-4">
+                      <div className="text-[10px] uppercase tracking-widest text-neutral-500">Karya Hits</div>
+                      <div className="mt-2 text-lg font-black text-neutral-950">{creatorProducts.length > 0 ? creatorProducts.length : 0}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* KARYA ETALASE */}
         <div className="space-y-4 pt-4">
-          <h2 className="font-black text-sm uppercase tracking-wider border-b-2 border-neutral-950 pb-2">Koleksi Karya Seni</h2>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <h2 className="border-b-2 border-neutral-950 pb-2 text-sm font-black uppercase tracking-wider">
+            Koleksi Karya Seni
+          </h2>
+
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {creatorProducts.length > 0 ? (
               creatorProducts.map((p, idx) => {
                 let imageUrl = '/images/default-art.jpg';
                 if (p.image_url && p.image_url !== 'default.jpg') {
-                  imageUrl = p.image_url.startsWith('/storage/') 
-                    ? p.image_url 
-                    : `/storage/${p.image_url}`;
+                  imageUrl = p.image_url.startsWith('/storage/') ? p.image_url : `/storage/${p.image_url}`;
                 }
-                
+
                 return (
-                  <div key={idx} className="bg-white border-4 border-neutral-950 p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between cursor-pointer hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition">
-                    <div 
+                  <div key={idx} className="flex flex-col justify-between border-4 border-neutral-950 bg-white p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                    <div
                       onClick={() => navigateTo('product-detail', p)}
-                      className="border-2 border-neutral-950 aspect-4/3 bg-neutral-100 overflow-hidden relative"
+                      className="relative aspect-4/3 overflow-hidden border-2 border-neutral-950 bg-neutral-100"
                     >
-                      <img src={imageUrl} alt={p.title} className="w-full h-full object-cover hover:scale-105 transition" />
+                      <img src={imageUrl} alt={p.title} className="h-full w-full object-cover transition hover:scale-105" />
                     </div>
-                    <div className="pt-3 flex justify-between items-center gap-2">
-                      <h3 className="font-extrabold text-xs truncate uppercase flex-1">{p.title}</h3>
-                      <button 
+                    <div className="flex items-center justify-between gap-2 pt-3">
+                      <h3 className="flex-1 truncate text-xs font-extrabold uppercase">{p.title}</h3>
+                      <button
                         onClick={() => navigateTo('product-detail', p)}
-                        className="border-2 border-neutral-950 bg-white hover:bg-neutral-950 hover:text-white px-3 py-1 text-[10px] font-black uppercase tracking-wider transition cursor-pointer shrink-0"
+                        className="shrink-0 border-2 border-neutral-950 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wider transition hover:bg-neutral-950 hover:text-white"
                       >
                         Detail
                       </button>
@@ -156,11 +189,27 @@ export default function PublicProfile({ navigateTo, targetUser, products = [], a
                 );
               })
             ) : (
-              <div className="col-span-full text-center py-12">
-                <p className="text-neutral-500 font-medium">Belum ada karya yang dipublikasikan oleh creator ini.</p>
+              <div className="col-span-full py-12 text-center">
+                <p className="font-medium text-neutral-500">Belum ada karya yang dipublikasikan oleh creator ini.</p>
               </div>
             )}
           </div>
         </div>
+      </main>
 
-      </
+      <footer className="mt-12 border-t-4 border-neutral-950 p-4 text-center text-xs font-mono text-neutral-500">
+        © 2026 Art Vibes Creative. Public Profile View.
+      </footer>
+
+      {isChatOpen && (
+        <ChatSidebar
+          targetUser={targetUser}
+          auth={auth}
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          onMessageSent={() => {}}
+        />
+      )}
+    </div>
+  );
+}

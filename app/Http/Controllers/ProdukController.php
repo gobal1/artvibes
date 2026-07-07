@@ -18,7 +18,7 @@ class ProdukController extends Controller
     {
         $produk = Produk::where('status', 'listing')
             ->with([
-                'user:idUser,name,email,avatar,bio', 
+                'user:idUser,name,email,avatar,bio,profile_background', 
                 'kategori:idkategori,name', 
                 'nft:idnfts,token_id,contract_address,metadata_url,produk_idproduk'
             ])
@@ -39,7 +39,7 @@ class ProdukController extends Controller
 
         $produk = Produk::where('user_idUser', $userId)
             ->with([
-                'user:idUser,name,email,avatar,bio',
+                'user:idUser,name,email,avatar,bio,profile_background',
                 'kategori:idkategori,name',
                 'nft:idnfts,token_id,contract_address,metadata_url,produk_idproduk'
             ])
@@ -80,7 +80,7 @@ class ProdukController extends Controller
         
         $produk->save();
 
-        $produk->load('user:idUser,name,email,avatar,bio', 'kategori:idkategori,name', 'nft:idnfts,token_id,contract_address,metadata_url,produk_idproduk');
+        $produk->load('user:idUser,name,email,avatar,bio,profile_background', 'kategori:idkategori,name', 'nft:idnfts,token_id,contract_address,metadata_url,produk_idproduk');
 
         return response()->json([
             'status' => 'success',
@@ -120,7 +120,7 @@ class ProdukController extends Controller
         }
 
         $produk->save();
-        $produk->load('user:idUser,name,email,avatar,bio', 'kategori:idkategori,name', 'nft:idnfts,token_id,contract_address,metadata_url,produk_idproduk');
+        $produk->load('user:idUser,name,email,avatar,bio,profile_background', 'kategori:idkategori,name', 'nft:idnfts,token_id,contract_address,metadata_url,produk_idproduk');
 
         return response()->json([
             'status' => 'success',
@@ -134,7 +134,7 @@ class ProdukController extends Controller
      */
     public function show($id)
     {
-        $produk = Produk::with('user:idUser,name,email,avatar,bio', 'kategori:idkategori,name', 'nft:idnfts,token_id,contract_address,metadata_url,produk_idproduk')->findOrFail($id);
+        $produk = Produk::with('user:idUser,name,email,avatar,bio,profile_background', 'kategori:idkategori,name', 'nft:idnfts,token_id,contract_address,metadata_url,produk_idproduk')->findOrFail($id);
         return response()->json($produk);
     }
 

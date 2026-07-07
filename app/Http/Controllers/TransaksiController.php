@@ -27,7 +27,7 @@ class TransaksiController extends Controller
             ->orderByDesc('idtransaksi')
             ->with(['produk' => function ($query) {
                 $query->with([
-                    'user:idUser,name,email,avatar,bio',
+                    'user:idUser,name,email,avatar,bio,profile_background',
                     'kategori:idkategori,name',
                     'nft:idnfts,token_id,contract_address,metadata_url,produk_idproduk',
                 ]);
@@ -67,7 +67,7 @@ class TransaksiController extends Controller
 
         $transactions = Transaksi::with([
             'produk' => function ($query) {
-                $query->with('user:idUser,name,email,avatar,bio');
+                $query->with('user:idUser,name,email,avatar,bio,profile_background');
             },
             'buyer:idUser,name,email',
         ])
@@ -128,7 +128,7 @@ class TransaksiController extends Controller
             if ($existing) {
                 $existingProduk = Produk::find($existing->produk_idproduk);
                 if ($existingProduk) {
-                    $existingProduk->load('user:idUser,name,email,avatar,bio', 'kategori:idkategori,name', 'nft:idnfts,token_id,contract_address,metadata_url,produk_idproduk');
+                    $existingProduk->load('user:idUser,name,email,avatar,bio,profile_background', 'kategori:idkategori,name', 'nft:idnfts,token_id,contract_address,metadata_url,produk_idproduk');
                 }
 
                 return response()->json([
@@ -168,7 +168,7 @@ class TransaksiController extends Controller
 
             DB::table('transaksi')->insert($insertPayload);
 
-            $produk->load('user:idUser,name,email,avatar,bio', 'kategori:idkategori,name', 'nft:idnfts,token_id,contract_address,metadata_url,produk_idproduk');
+            $produk->load('user:idUser,name,email,avatar,bio,profile_background', 'kategori:idkategori,name', 'nft:idnfts,token_id,contract_address,metadata_url,produk_idproduk');
 
             DB::commit();
 
@@ -186,7 +186,7 @@ class TransaksiController extends Controller
                 $existing = DB::table('transaksi')->where('tx_hash', $request->tx_hash)->first();
                 $existingProduk = $existing ? Produk::find($existing->produk_idproduk) : null;
                 if ($existingProduk) {
-                    $existingProduk->load('user:idUser,name,email,avatar,bio', 'kategori:idkategori,name', 'nft:idnfts,token_id,contract_address,metadata_url,produk_idproduk');
+                    $existingProduk->load('user:idUser,name,email,avatar,bio,profile_background', 'kategori:idkategori,name', 'nft:idnfts,token_id,contract_address,metadata_url,produk_idproduk');
                 }
 
                 return response()->json([
