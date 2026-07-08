@@ -9,12 +9,29 @@ const CHAIN_METADATA = {
   10143: { name: 'Monad Testnet', symbol: 'MON', explorer: 'https://testnet.monadexplorer.com', isTestnet: true },
   43114: { name: 'Avalanche C-Chain', symbol: 'AVAX', explorer: 'https://snowtrace.io', isTestnet: false },
   42161: { name: 'Arbitrum One', symbol: 'ETH', explorer: 'https://arbiscan.io', isTestnet: false },
-  1: { name: 'Ethereum Mainnet', symbol: 'ETH', explorer: 'https://etherscan.io', isTestnet: false },
-  11155111: { name: 'Ethereum Sepolia Testnet', symbol: 'ETH', explorer: 'https://sepolia.etherscan.io', isTestnet: true },
-  10143: { name: 'Monad Testnet', symbol: 'MON', explorer: 'https://testnet.monadexplorer.com', isTestnet: true },
-  43114: { name: 'Avalanche C-Chain', symbol: 'AVAX', explorer: 'https://snowtrace.io', isTestnet: false },
-  42161: { name: 'Arbitrum One', symbol: 'ETH', explorer: 'https://arbiscan.io', isTestnet: false },
 };
+
+const MOBILE_WALLET_DEEP_LINKS = {
+  metamask: (dappUrl) => `https://metamask.app.link/dapp/${dappUrl}`,
+  'coinbase-wallet': (dappUrl) => `https://go.cb-w.com/dapp?uri=${encodeURIComponent(dappUrl)}`,
+  trust: (dappUrl) => `https://link.trustwallet.com/open_url?uri=${encodeURIComponent(dappUrl)}`,
+};
+
+function isMobileDevice() {
+  if (typeof navigator === 'undefined') return false;
+  return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function buildCurrentDappUrl() {
+  if (typeof window === 'undefined') return '';
+  return window.location.href;
+}
+
+export function getMobileWalletRedirectUrl(walletType = 'metamask') {
+  const builder = MOBILE_WALLET_DEEP_LINKS[walletType?.toLowerCase().replace(/\s+/g, '-')] || null;
+  if (!builder) return null;
+  return builder(buildCurrentDappUrl());
+}
 
 export const ART_VIBES_MARKET_ABI = [
   'event Minted(uint256 indexed tokenId, address indexed creator, string tokenURI)',
@@ -94,22 +111,31 @@ export function hasEthereumProvider() {
   return Boolean(getEthereumProvider());
 }
 
-export async function connectWallet() {
+export async function connectWallet({ walletType = 'metamask' } = {}) {
   const provider = getEthereumProvider();
+
   if (!provider) {
-    throw new Error('MetaMask belum terpasang atau belum aktif di browser ini. Silakan install/aktifkan MetaMask lalu coba lagi.');
+    if (isMobileDevice()) {
+      const redirectUrl = getMobileWalletRedirectUrl(walletType);
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+        return null;
+      }
+    }
+
+    throw new Error('MetaMask belum terpasang atau belum aktif di browser ini. Jika Anda menggunakan perangkat mobile, buka halaman ini di browser aplikasi MetaMask, Coinbase Wallet, atau Trust Wallet.');
   }
 
   try {
     const accounts = await provider.request({ method: 'eth_requestAccounts' });
     if (!accounts || accounts.length === 0) {
-      throw new Error('Gagal mengambil akun wallet. Pastikan MetaMask sudah terhubung.');
+      throw new Error('Gagal mengambil akun wallet. Pastikan wallet sudah terhubung.');
     }
 
     return accounts[0];
   } catch (error) {
     if (error?.code === 4001) {
-      throw new Error('Kamu menolak koneksi MetaMask.');
+      throw new Error('Kamu menolak koneksi wallet.');
     }
     throw error;
   }

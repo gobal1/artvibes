@@ -2,24 +2,27 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
-export default function WalletModal({ isOpen, onClose }) {
+export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
   // Daftar wallet yang akan ditampilkan di pop-up
   const wallets = [
     {
       name: 'MetaMask',
       icon: 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
-      description: 'Connect using your browser extension',
+      description: 'Buka di browser aplikasi MetaMask atau ekstensi MetaMask',
       popular: true,
+      key: 'metamask',
     },
     {
       name: 'Coinbase Wallet',
       icon: 'https://images.ctfassets.net/q5ulk4bp65r7/1r5mhiK3uwt0wGISO861zA/426b334be01e747ee37da30b42fbb1bf/coinbase-wallet-logo.png',
-      description: 'Connect with Coinbase account',
+      description: 'Gunakan Coinbase Wallet mobile atau ekstensi',
+      key: 'coinbase-wallet',
     },
     {
       name: 'Trust Wallet',
       icon: 'https://trustwallet.com/assets/images/media/assets/TWT_Logo_Vertical_Blue.svg',
-      description: 'Scan via WalletConnect to log in',
+      description: 'Buka Trust Wallet atau gunakan WalletConnect',
+      key: 'trust',
     },
   ];
 
@@ -68,8 +71,10 @@ export default function WalletModal({ isOpen, onClose }) {
               {wallets.map((wallet, index) => (
                 <button
                   key={index}
-                  onClick={() => {
-                    alert(`Menghubungkan ke ${wallet.name}... (Integrasi Web3/Ethers berikutnya)`);
+                  onClick={async () => {
+                    if (typeof onSelectWallet === 'function') {
+                      await onSelectWallet(wallet.key || wallet.name.toLowerCase().replace(/\s+/g, '-'));
+                    }
                     onClose();
                   }}
                   className="group relative flex w-full items-center gap-4 rounded-2xl border border-white/[0.04] bg-slate-950/40 p-4 text-left transition-all duration-200 hover:border-emerald-500/30 hover:bg-slate-950/80 hover:shadow-[0_0_15px_-5px_rgba(16,185,129,0.2)]"

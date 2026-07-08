@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Wallet, User, Bell, X, ShieldCheck, LogOut, Mail, Lock, ChevronDown } from 'lucide-react';
 import RhombusButton from './RhombusButton'; 
+import WalletModal from './WalletModal';
+import { connectWallet as connectWalletUtil } from '../Utils/artVibesMarket';
 
 const GoogleLogo = ({ className }) => (
   <svg viewBox="0 0 533.5 544.3" className={className} aria-hidden="true">
@@ -27,6 +29,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
   const [isLoginForm, setIsLoginForm] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
   const [notifications, setNotifications] = useState([
     { id: 1, text: "Transaksi baru sukses dikonfirmasi.", type: "success", read: false },
@@ -119,20 +122,16 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
     if (!isNotifOpen) setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const connectWallet = async () => {
-    if (typeof window.ethereum === 'undefined') {
-      alert('MetaMask belum terinstall!');
-      return;
-    }
+  const handleWalletSelection = async (walletType) => {
+    setIsWalletModalOpen(false);
 
     try {
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      if (!accounts || accounts.length === 0) {
-        alert('Akun wallet tidak ditemukan.');
+      const walletAddress = await connectWalletUtil({ walletType });
+      if (!walletAddress) {
+        // Wallet selection redirected the browser to a mobile wallet app.
         return;
       }
 
-      const walletAddress = accounts[0].toLowerCase();
       const chainHex = await window.ethereum.request({ method: 'eth_chainId' });
       const chainId = parseInt(chainHex, 16);
 
@@ -188,6 +187,15 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
       console.error('Wallet connect error:', error);
       alert(error?.message || 'Gagal menghubungkan wallet.');
     }
+  };
+
+  const connectWallet = async () => {
+    if (typeof window.ethereum === 'undefined') {
+      setIsWalletModalOpen(true);
+      return;
+    }
+
+    await handleWalletSelection('metamask');
   };
 
   // Fungsi Login Manual ke Backend Laravel
@@ -296,13 +304,9 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
                       👤 Profil Saya
                     </button>
                     <button 
-                      onClick={async () => {
-                        try {
-                          await connectWallet();
-                          setIsProfileDropdownOpen(false);
-                        } catch (error) {
-                          console.error('Wallet connect from profile menu error:', error);
-                        }
+                      onClick={() => {
+                        setIsWalletModalOpen(true);
+                        setIsProfileDropdownOpen(false);
                       }}
                       className="w-full text-left px-4 py-2 text-white text-sm hover:bg-emerald-500/20 transition flex items-center gap-2 border-t border-white/10"
                     >
@@ -356,6 +360,8 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
         </div>
       </div>
 
+      <WalletModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} onSelectWallet={handleWalletSelection} />
+
       {/* --- MODAL ACCOUNT (Dinamis) --- */}
       {isAccountModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xl transition-opacity">
@@ -393,7 +399,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
                 <div className="space-y-3">
                   {!isLoginForm ? (
                     <>
-                      <button onClick={connectWallet} className="w-full bg-gradient-to-r from-emerald-400 to-emerald-500 py-3 rounded-2xl font-semibold text-slate-950 shadow-xl shadow-emerald-600/20 hover:brightness-110 transition">Connect Wallet</button>
+                      <button onClick={() => setIsWalletModalOpen(true)} className="w-full bg-gradient-to-r from-emerald-400 to-emerald-500 py-3 rounded-2xl font-semibold text-slate-950 shadow-xl shadow-emerald-600/20 hover:brightness-110 transition">Connect Wallet</button>
                       <button onClick={() => setIsLoginForm(true)} className="w-full bg-slate-900 border border-white/10 py-3 rounded-2xl text-white font-semibold hover:bg-slate-800 transition">Register</button>
                       <a href={`${apiBaseUrl}/auth/google/redirect`} className="w-full inline-flex items-center justify-center gap-3 bg-white text-slate-950 py-3 rounded-2xl font-semibold hover:brightness-95 transition border border-slate-200/20">
                         <GoogleLogo className="h-5 w-5" />
