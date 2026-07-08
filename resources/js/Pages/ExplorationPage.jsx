@@ -18,7 +18,7 @@ import {
   Volume2,
   CalendarDays
 } from 'lucide-react';
-import Footer from '../components/Footer';
+import Footer from '../Components/Footer';
 import { buyListedToken, getConfiguredChainMetadata, getExplorerBaseUrl, getListingState, getNativeCurrencySymbol, requireWalletAccess, shortenAddress } from '../Utils/artVibesMarket';
 
 // Menerima props 'products' sesuai kiriman data dari backend

@@ -13,9 +13,9 @@ import {
   Info,
   Heart
 } from 'lucide-react';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import Sidebar from '../components/Sidebar';
+import Header from '../Components/Header';
+import Footer from '../Components/Footer';
+import Sidebar from '../Components/Sidebar';
 import { buyListedToken, getConfiguredChainMetadata, getExplorerBaseUrl, getListingState, getNativeCurrencySymbol, requireWalletAccess, shortenAddress } from '../Utils/artVibesMarket';
 
 export default function ProductDetailPage({ product, navigateTo, auth, onProductPurchased }) {
