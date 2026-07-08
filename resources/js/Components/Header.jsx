@@ -304,9 +304,9 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
                       👤 Profil Saya
                     </button>
                     <button 
-                      onClick={() => {
-                        setIsWalletModalOpen(true);
+                      onClick={async () => {
                         setIsProfileDropdownOpen(false);
+                        await connectWallet();
                       }}
                       className="w-full text-left px-4 py-2 text-white text-sm hover:bg-emerald-500/20 transition flex items-center gap-2 border-t border-white/10"
                     >
@@ -399,7 +399,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
                 <div className="space-y-3">
                   {!isLoginForm ? (
                     <>
-                      <button onClick={() => setIsWalletModalOpen(true)} className="w-full bg-gradient-to-r from-emerald-400 to-emerald-500 py-3 rounded-2xl font-semibold text-slate-950 shadow-xl shadow-emerald-600/20 hover:brightness-110 transition">Connect Wallet</button>
+                      <button onClick={connectWallet} className="w-full bg-gradient-to-r from-emerald-400 to-emerald-500 py-3 rounded-2xl font-semibold text-slate-950 shadow-xl shadow-emerald-600/20 hover:brightness-110 transition">Connect Wallet</button>
                       <button onClick={() => setIsLoginForm(true)} className="w-full bg-slate-900 border border-white/10 py-3 rounded-2xl text-white font-semibold hover:bg-slate-800 transition">Register</button>
                       <a href={`${apiBaseUrl}/auth/google/redirect`} className="w-full inline-flex items-center justify-center gap-3 bg-white text-slate-950 py-3 rounded-2xl font-semibold hover:brightness-95 transition border border-slate-200/20">
                         <GoogleLogo className="h-5 w-5" />
