@@ -31,77 +31,94 @@ export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           
-          {/* BACKDROP/OVERLAY: Efek blur transparan gelap ketika di luar modal diklik akan menutup popup */}
+          {/* BACKDROP/OVERLAY */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
+            className="absolute inset-0 bg-slate-950/70 backdrop-blur-xl"
           />
 
-          {/* KONTEN MODAL POP-UP */}
+          {/* KONTEN MODAL - THIN & ELEGANT */}
           <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            initial={{ scale: 0.8, opacity: 0, y: 30 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            transition={{ type: 'spring', duration: 0.4 }}
-            className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-900/90 p-6 shadow-2xl backdrop-blur-2xl"
+            exit={{ scale: 0.8, opacity: 0, y: 30 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300, duration: 0.35 }}
+            className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 backdrop-blur-2xl shadow-2xl"
           >
-            {/* GLOW EFFECT DI BACKGROUND POPUP */}
-            <div className="absolute -right-20 -top-20 -z-10 h-40 w-40 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
-            <div className="absolute -left-20 -bottom-20 -z-10 h-40 w-40 rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
+            {/* GRADIENT GLOW EFFECTS */}
+            <div className="absolute -right-24 -top-24 -z-10 h-48 w-48 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
+            <div className="absolute -left-24 -bottom-24 -z-10 h-48 w-48 rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
 
-            {/* HEADER POP-UP */}
-            <div className="flex items-center justify-between pb-4 border-b border-white/5">
-              <div>
-                <h3 className="text-lg font-black tracking-wide text-white uppercase">Connect Wallet Utama</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Wallet dipakai untuk mint, list, dan buy. Google menyusul untuk profil dan chat.</p>
+            {/* TOP BAR - MINIMAL */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+              <div className="flex-1">
+                <h3 className="text-sm font-bold tracking-wide text-white uppercase">Pilih Dompet</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">Koneksi untuk NFT & transaksi</p>
               </div>
-              <button 
+              <motion.button 
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={onClose}
-                className="rounded-xl border border-white/5 bg-slate-950 p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                className="ml-2 rounded-lg border border-white/5 bg-slate-900/50 p-1.5 text-slate-400 transition hover:bg-slate-900 hover:text-white hover:border-white/10"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </motion.button>
             </div>
 
-            {/* LIST PILIHAN WALLET */}
-            <div className="mt-5 space-y-3">
+            {/* WALLET LIST - COMPACT */}
+            <div className="px-5 py-4 space-y-2.5">
               {wallets.map((wallet, index) => (
-                <button
+                <motion.button
                   key={index}
+                  whileHover={{ scale: 1.02, x: 4 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={async () => {
                     if (typeof onSelectWallet === 'function') {
                       await onSelectWallet(wallet.key || wallet.name.toLowerCase().replace(/\s+/g, '-'));
                     }
                     onClose();
                   }}
-                  className="group relative flex w-full items-center gap-4 rounded-2xl border border-white/[0.04] bg-slate-950/40 p-4 text-left transition-all duration-200 hover:border-emerald-500/30 hover:bg-slate-950/80 hover:shadow-[0_0_15px_-5px_rgba(16,185,129,0.2)]"
+                  className="group relative flex w-full items-center gap-3 rounded-xl border border-white/5 bg-slate-900/40 px-4 py-3 text-left transition-all duration-200 hover:border-emerald-500/40 hover:bg-slate-900/60 hover:shadow-[0_0_12px_-6px_rgba(16,185,129,0.3)]"
                 >
-                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-white/5 bg-slate-900 p-2 group-hover:scale-105 transition-transform">
-                    <img src={wallet.icon} alt={wallet.name} className="h-full w-full object-contain" />
+                  {/* WALLET ICON */}
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-white/5 bg-slate-950/60 group-hover:scale-110 transition-transform duration-200">
+                    <img src={wallet.icon} alt={wallet.name} className="h-full w-full object-contain p-1" />
                   </div>
                   
+                  {/* WALLET INFO */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-white tracking-wide">{wallet.name}</p>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-sm font-bold text-white">{wallet.name}</p>
                       {wallet.popular && (
-                        <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-mono font-bold tracking-wide text-emerald-400 border border-emerald-500/20">
+                        <motion.span 
+                          initial={{ scale: 0.8 }}
+                          animate={{ scale: 1 }}
+                          className="rounded-sm bg-emerald-500/20 px-1.5 py-0.5 text-[8px] font-bold tracking-wide text-emerald-300 border border-emerald-500/30"
+                        >
                           POPULAR
-                        </span>
+                        </motion.span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 truncate mt-0.5">{wallet.description}</p>
+                    <p className="text-xs text-slate-500 line-clamp-1">{wallet.description}</p>
                   </div>
-                </button>
+
+                  {/* HOVER ARROW */}
+                  <div className="flex-shrink-0 text-slate-600 group-hover:text-emerald-500 transition-colors">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </motion.button>
               ))}
             </div>
 
-            {/* FOOTER POP-UP */}
-            <div className="mt-6 text-center">
-              <p className="text-[10px] font-mono text-slate-500">
-                Baru mengenal Crypto? <a href="#" className="text-emerald-400 hover:underline">Pelajari selengkapnya</a>
+            {/* FOOTER - MINIMAL INFO */}
+            <div className="px-5 py-3.5 border-t border-white/5 bg-slate-950/30">
+              <p className="text-[10px] text-slate-500 text-center leading-relaxed">
+                Pertama kali? <a href="#" className="text-emerald-400 hover:text-emerald-300 font-semibold transition">Pelajari wallet</a>
               </p>
             </div>
 

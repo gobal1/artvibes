@@ -3,7 +3,8 @@ import { motion } from 'motion/react';
 import { Wallet, User, Bell, X, ShieldCheck, LogOut, Mail, Lock, ChevronDown } from 'lucide-react';
 import RhombusButton from './RhombusButton'; 
 import WalletModal from './WalletModal';
-import { connectWallet as connectWalletUtil } from '../Utils/artVibesMarket';
+import WalletConnectingModal from './WalletConnectingModal';
+import { connectWallet as connectWalletUtil, isReturningFromMobileWallet, clearMobileWalletMarkers } from '../Utils/artVibesMarket';
 
 const GoogleLogo = ({ className }) => (
   <svg viewBox="0 0 533.5 544.3" className={className} aria-hidden="true">
@@ -30,6 +31,13 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+
+  // State untuk connecting modal
+  const [isConnectingModalOpen, setIsConnectingModalOpen] = useState(false);
+  const [connectingStatus, setConnectingStatus] = useState('connecting'); // 'connecting', 'signing', 'verifying', 'success', 'error'
+  const [connectingMessage, setConnectingMessage] = useState('Menghubungkan wallet...');
+  const [connectingDetails, setConnectingDetails] = useState('');
+  const [selectedWalletType, setSelectedWalletType] = useState(null);
 
   const [notifications, setNotifications] = useState([
     { id: 1, text: "Transaksi baru sukses dikonfirmasi.", type: "success", read: false },
@@ -91,6 +99,28 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
     }
   }, [auth]);
 
+  // Handle returning from mobile wallet deep link
+  useEffect(() => {
+    if (!isReturningFromMobileWallet()) return;
+
+    console.log('📱 Returning from mobile wallet app, retrying connection...');
+    const walletType = sessionStorage.getItem('_wallet_connecting') || 'metamask';
+    clearMobileWalletMarkers();
+
+    // Show connecting modal and retry
+    setIsConnectingModalOpen(true);
+    setConnectingStatus('connecting');
+    setConnectingMessage('Melanjutkan koneksi wallet...');
+    setSelectedWalletType(walletType);
+
+    // Retry connection after a short delay to allow wallet to inject
+    const retryTimeout = setTimeout(() => {
+      handleWalletSelection(walletType);
+    }, 1000);
+
+    return () => clearTimeout(retryTimeout);
+  }, []);
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -123,18 +153,39 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
   };
 
   const handleWalletSelection = async (walletType) => {
+    // Simpan tipe wallet yang dipilih
+    setSelectedWalletType(walletType);
+    
+    // Tutup modal pilihan wallet
     setIsWalletModalOpen(false);
 
+    // Buka connecting modal
+    setIsConnectingModalOpen(true);
+    setConnectingStatus('connecting');
+    setConnectingMessage('Menghubungkan wallet...');
+    setConnectingDetails('');
+
     try {
+      // STEP 1: Connect ke wallet
+      setConnectingMessage('Membuka wallet Anda...');
       const walletAddress = await connectWalletUtil({ walletType });
+      
       if (!walletAddress) {
-        // Wallet selection redirected the browser to a mobile wallet app.
+        // Wallet selection redirected the browser to a mobile wallet app (Android/iOS)
+        // Close modal dan tunggu return dari deep link
+        setIsConnectingModalOpen(false);
         return;
       }
 
+      // STEP 2: Get chain ID
+      setConnectingStatus('connecting');
+      setConnectingMessage('Mengecek jaringan blockchain...');
       const chainHex = await window.ethereum.request({ method: 'eth_chainId' });
       const chainId = parseInt(chainHex, 16);
 
+      // STEP 3: Get challenge message
+      setConnectingStatus('verifying');
+      setConnectingMessage('Mempersiapkan signature...');
       const challengeResponse = await fetch('/api/wallet/challenge', {
         method: 'POST',
         credentials: 'include',
@@ -151,10 +202,28 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
         throw new Error(challengeData?.message || 'Gagal membuat challenge wallet');
       }
 
-      const signature = await window.ethereum.request({
-        method: 'personal_sign',
-        params: [challengeData.message, walletAddress],
-      });
+      // STEP 4: Request signature dari user
+      setConnectingStatus('signing');
+      setConnectingMessage('Mohon tandatangani pesan di wallet Anda');
+      setConnectingDetails('Jangan khawatir, ini tidak memerlukan gas atau transaksi');
+
+      let signature;
+      try {
+        signature = await window.ethereum.request({
+          method: 'personal_sign',
+          params: [challengeData.message, walletAddress],
+        });
+      } catch (signError) {
+        if (signError?.code === 4001) {
+          throw new Error('Anda membatalkan penandatanganan pesan. Silakan coba lagi.');
+        }
+        throw new Error(`Gagal menandatangani pesan: ${signError?.message || 'Unknown error'}`);
+      }
+
+      // STEP 5: Verify signature
+      setConnectingStatus('verifying');
+      setConnectingMessage('Memverifikasi signature...');
+      setConnectingDetails('');
 
       const verifyResponse = await fetch('/api/wallet/verify', {
         method: 'POST',
@@ -176,26 +245,48 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
         throw new Error(verifyData?.message || 'Verifikasi wallet gagal');
       }
 
+      // SUCCESS!
+      setConnectingStatus('success');
+      setConnectingMessage('Wallet berhasil terhubung!');
       setUserAddress(walletAddress);
-      if (typeof setGlobalAddress === 'function') setGlobalAddress(walletAddress);
+      
+      if (typeof setGlobalAddress === 'function') {
+        setGlobalAddress(walletAddress);
+      }
+      
       if (verifyData?.user && typeof onLoginSuccess === 'function') {
         onLoginSuccess(verifyData.user);
       }
-      setIsAccountModalOpen(false);
-      alert('Wallet berhasil terhubung.');
+
+      // Close connecting modal dan account modal setelah 1 detik
+      setTimeout(() => {
+        setIsConnectingModalOpen(false);
+        setIsAccountModalOpen(false);
+      }, 1200);
+
     } catch (error) {
-      console.error('Wallet connect error:', error);
-      alert(error?.message || 'Gagal menghubungkan wallet.');
+      console.error('❌ Wallet connect error:', error);
+      
+      // Show error in modal
+      setConnectingStatus('error');
+      setConnectingMessage('Terjadi kesalahan');
+      setConnectingDetails(error?.message || 'Gagal menghubungkan wallet. Silakan coba lagi.');
+
+      // After 3 seconds, close modal and reopen wallet selection
+      setTimeout(() => {
+        setIsConnectingModalOpen(false);
+        setIsWalletModalOpen(true);
+      }, 3000);
     }
   };
 
-  const connectWallet = async () => {
-    if (typeof window.ethereum === 'undefined') {
+  const connectWallet = () => {
+    // Close account modal first, then show wallet selection modal
+    setIsAccountModalOpen(false);
+    // Small delay to ensure account modal closes before wallet modal opens
+    setTimeout(() => {
       setIsWalletModalOpen(true);
-      return;
-    }
-
-    await handleWalletSelection('metamask');
+    }, 100);
   };
 
   // Fungsi Login Manual ke Backend Laravel
@@ -361,6 +452,13 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
       </div>
 
       <WalletModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} onSelectWallet={handleWalletSelection} />
+
+      <WalletConnectingModal 
+        isOpen={isConnectingModalOpen} 
+        status={connectingStatus}
+        message={connectingMessage}
+        details={connectingDetails}
+      />
 
       {/* --- MODAL ACCOUNT (Dinamis) --- */}
       {isAccountModalOpen && (
