@@ -1043,8 +1043,8 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
 
       {/* POP-UP MODAL QUICK VIEW */}
       {selectedNft && (
-        <div className="fixed inset-0 z-50 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white border-4 border-neutral-950 p-4 sm:p-5 max-w-3xl w-full shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] relative flex flex-col md:flex-row gap-4 max-h-[90vh] overflow-y-auto md:overflow-visible">
+        <div className="fixed inset-0 z-70 bg-neutral-950/60 backdrop-blur-sm flex items-start md:items-center justify-center p-2 sm:p-4 pt-20 sm:pt-0 overflow-y-auto">
+          <div className="bg-white border-4 border-neutral-950 p-3 sm:p-5 max-w-3xl sm:max-w-xl w-full mx-2 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] relative flex flex-col md:flex-row gap-3 sm:gap-4 max-h-[calc(100vh-96px)] overflow-auto rounded-xl">
             <button 
               onClick={() => {
                 setSelectedNft(null);
@@ -1059,7 +1059,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
             </button>
 
             <div className="flex-1 min-w-0">
-              <div className="border-4 border-neutral-950 p-1.5 bg-neutral-50 aspect-4/3 md:aspect-square overflow-hidden">
+              <div className="border-4 border-neutral-950 p-1 bg-neutral-50 overflow-hidden max-h-56 sm:max-h-72 w-full sm:w-auto flex-none">
                 {(() => {
                   let imgUrl = '/images/default-art.jpg';
                   if (selectedNft.image_url && selectedNft.image_url !== 'default.jpg') {
@@ -1067,12 +1067,12 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                       ? selectedNft.image_url 
                       : `/storage/${selectedNft.image_url}`;
                   }
-                  return <img src={imgUrl} alt={selectedNft.title} className="w-full h-full object-cover" />;
+                  return <img src={imgUrl} alt={selectedNft.title} className="w-full h-full object-cover max-h-56 sm:max-h-72" />;
                 })()}
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col justify-between space-y-4 min-w-0">
+              <div className="flex-1 flex flex-col justify-between space-y-3 min-w-0 overflow-auto">
               <div className="space-y-3">
                 <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-neutral-500">
                   <Tag className="h-3 w-3" /> Quick View
@@ -1082,7 +1082,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                 </h2>
 
                 {selectedNft.deskripsi && (
-                  <p className="text-xs text-neutral-600 line-clamp-3">
+                  <p className="text-xs text-neutral-600 line-clamp-3 sm:line-clamp-4">
                     {selectedNft.deskripsi}
                   </p>
                 )}
@@ -1106,7 +1106,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                   <ShieldCheck className="h-4 w-4 text-blue-500 ml-auto" />
                 </a>
 
-                <div className="border border-neutral-300 p-2.5 font-mono text-[10px] sm:text-[11px] space-y-1.5 bg-neutral-50/50">
+                <div className="border border-neutral-300 p-2 sm:p-2.5 font-mono text-[10px] sm:text-[11px] space-y-1 bg-neutral-50/50">
                   <div className="flex justify-between gap-3">
                     <span className="text-neutral-400">Owner</span>
                     <a
@@ -1153,11 +1153,11 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-neutral-200 space-y-2.5">
-                <div className="bg-neutral-950 text-white p-2.5 flex justify-between items-center border-2 border-neutral-950">
+              <div className="pt-2 border-t border-neutral-200 space-y-2">
+                <div className="bg-neutral-950 text-white p-2 flex justify-between items-center border-2 border-neutral-950">
                   <div>
                     <p className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">Current Valuasi Price</p>
-                    <p className="text-base sm:text-lg font-black font-mono tracking-tight text-white">{selectedNft.price_crypto || selectedNft.price || '0.00'} {nativeSymbol}</p>
+                    <p className="text-sm sm:text-base font-black font-mono tracking-tight text-white">{selectedNft.price_crypto || selectedNft.price || '0.00'} {nativeSymbol}</p>
                   </div>
                   <Wallet className="h-5 w-5 text-neutral-400" />
                 </div>
