@@ -7,6 +7,7 @@ use App\Models\Nft;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ProdukController extends Controller
 {
@@ -62,7 +63,11 @@ class ProdukController extends Controller
         ]);
 
         if ($request->hasFile('gambar')) {
-            $path = $request->file('gambar')->store('produk', 'public');
+            $file = $request->file('gambar');
+            $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+            $safeFilename = Str::slug($filename, '-') ?: 'produk-image';
+            $safeFilename = $safeFilename . '-' . time() . '.' . $file->extension();
+            $path = $file->storeAs('produk', $safeFilename, 'public');
             $imagePath = $path;
         } else {
             return response()->json(['message' => 'File gambar tidak ditemukan'], 400);
@@ -115,7 +120,11 @@ class ProdukController extends Controller
         $produk->status = $request->status;
 
         if ($request->hasFile('gambar')) {
-            $path = $request->file('gambar')->store('produk', 'public');
+            $file = $request->file('gambar');
+            $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+            $safeFilename = Str::slug($filename, '-') ?: 'produk-image';
+            $safeFilename = $safeFilename . '-' . time() . '.' . $file->extension();
+            $path = $file->storeAs('produk', $safeFilename, 'public');
             $produk->image_url = $path;
         }
 
