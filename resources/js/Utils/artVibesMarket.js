@@ -29,6 +29,20 @@ function isMetaMaskMobile() {
 
 function buildCurrentDappUrl() {
   if (typeof window === 'undefined') return '';
+  
+  const url = new URL(window.location.href);
+  
+  // Jika localhost/127.0.0.1, replace dengan domain dari .env atau ngrok/public URL
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    // Try to get public URL dari environment atau use ngrok
+    const publicUrl = import.meta.env.VITE_APP_URL || import.meta.env.VITE_PUBLIC_URL;
+    if (publicUrl) {
+      return publicUrl + window.location.pathname + window.location.search;
+    }
+    // Fallback: gunakan current pathname tapi bisa di-override di mobile
+    // Untuk mobile testing, Anda perlu setup ngrok atau use public domain
+  }
+  
   return window.location.href;
 }
 
