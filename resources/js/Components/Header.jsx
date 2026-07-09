@@ -81,6 +81,12 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
       }
     };
 
+    // Remove any existing listeners first to prevent duplicate additions
+    if (window.ethereum.removeAllListeners) {
+      window.ethereum.removeAllListeners('accountsChanged');
+      window.ethereum.removeAllListeners('chainChanged');
+    }
+
     initializeWallet();
     window.ethereum.on('accountsChanged', handleAccountsChanged);
     window.ethereum.on('chainChanged', handleChainChanged);
@@ -89,7 +95,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
       window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
       window.ethereum.removeListener('chainChanged', handleChainChanged);
     };
-  }, [setGlobalAddress, userAddress, globalAddress]);
+  }, []);
 
   // Debug auth prop
   useEffect(() => {
