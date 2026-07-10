@@ -12,7 +12,7 @@ const CHAIN_METADATA = {
 };
 
 const MOBILE_WALLET_DEEP_LINKS = {
-  metamask: (dappUrl) => `https://metamask.app.link/dapp/${dappUrl}`,
+  metamask: (dappUrl) => `https://metamask.app.link/dapp/${encodeURIComponent(dappUrl)}`,
   'coinbase-wallet': (dappUrl) => `https://go.cb-w.com/dapp?uri=${encodeURIComponent(dappUrl)}`,
   trust: (dappUrl) => `https://link.trustwallet.com/open_url?uri=${encodeURIComponent(dappUrl)}`,
 };
@@ -52,32 +52,12 @@ export function getMobileWalletRedirectUrl(walletType = 'metamask') {
   return builder(buildCurrentDappUrl());
 }
 
-/**
- * Check if we're returning from a mobile wallet deep link
- * This helps auto-continue the connection flow
- */
 export function isReturningFromMobileWallet() {
-  if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') {
-    return false;
-  }
-  const connectingWallet = sessionStorage.getItem('_wallet_connecting');
-  const connectTime = sessionStorage.getItem('_wallet_connect_time');
-  
-  if (!connectingWallet || !connectTime) return false;
-  
-  // Check if it's been less than 2 minutes since we initiated connection
-  const elapsed = Date.now() - parseInt(connectTime, 10);
-  return elapsed < 120000; // 2 minutes
+  return false;
 }
 
-/**
- * Clear mobile wallet session markers
- */
 export function clearMobileWalletMarkers() {
-  if (typeof sessionStorage !== 'undefined') {
-    sessionStorage.removeItem('_wallet_connecting');
-    sessionStorage.removeItem('_wallet_connect_time');
-  }
+  // No-op for current injected-provider only flow.
 }
 
 export const ART_VIBES_MARKET_ABI = [
@@ -160,55 +140,30 @@ export function hasEthereumProvider() {
 
 export async function connectWallet({ walletType = 'metamask' } = {}) {
   const provider = getEthereumProvider();
-  const isMobile = isMobileDevice();
 
-  // SCENARIO 1: Provider sudah tersedia (Browser extension atau in-app browser di wallet mobile)
-  if (provider && provider?.request) {
-    try {
-      const accounts = await provider.request({ method: 'eth_requestAccounts' });
-      if (!accounts || accounts.length === 0) {
-        throw new Error('Gagal mengambil akun wallet. Pastikan wallet sudah terhubung.');
-      }
-      return accounts[0];
-    } catch (error) {
-      if (error?.code === 4001) {
-        throw new Error('Anda membatalkan permintaan koneksi wallet.');
-      }
-      // Jika error lain, fallback ke deep link pada mobile
-      if (isMobile) {
-        const redirectUrl = getMobileWalletRedirectUrl(walletType);
-        if (redirectUrl) {
-          console.log('📱 Redirecting ke wallet mobile app:', walletType);
-          window.location.href = redirectUrl;
-          return null;
-        }
-      }
-      throw error;
+  if (!provider) {
+    if (isMobileDevice()) {
+      throw new Error(
+        'MetaMask tidak tersedia di browser ini. Buka situs ini di browser MetaMask mobile atau pasang MetaMask mobile.'
+      );
     }
+    throw new Error(
+      'Wallet tidak ditemukan. Pasang ekstensi MetaMask di desktop atau buka situs ini di browser MetaMask mobile.'
+    );
   }
 
-  // SCENARIO 2: Tidak ada provider, coba deep link ke mobile wallet app
-  if (isMobile) {
-    const redirectUrl = getMobileWalletRedirectUrl(walletType);
-    if (redirectUrl) {
-      console.log('📱 Opening MetaMask/Wallet mobile app...');
-      // Store state untuk tracking setelah return dari deep link
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('_wallet_connecting', walletType);
-        sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
-      }
-      window.location.href = redirectUrl;
-      return null;
+  try {
+    const accounts = await provider.request({ method: 'eth_requestAccounts' });
+    if (!accounts || accounts.length === 0) {
+      throw new Error('Gagal mengambil akun wallet. Pastikan wallet sudah terhubung.');
     }
+    return accounts[0];
+  } catch (error) {
+    if (error?.code === 4001) {
+      throw new Error('Anda membatalkan permintaan koneksi wallet.');
+    }
+    throw error;
   }
-
-  // SCENARIO 3: Provider tidak ada dan bukan mobile
-  throw new Error(
-    'Wallet tidak ditemukan. Silakan:\n' +
-    '1. Install MetaMask extension untuk desktop\n' +
-    '2. Atau buka di browser MetaMask mobile app\n' +
-    '3. Atau gunakan wallet lain (Coinbase, Trust Wallet)'
-  );
 }
 
 export async function ensureCorrectNetwork(expectedChainId = getConfiguredChainId()) {
