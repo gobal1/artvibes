@@ -12,9 +12,7 @@ const CHAIN_METADATA = {
 };
 
 const MOBILE_WALLET_DEEP_LINKS = {
-  // Do NOT use /dapp/ for MetaMask — that forces the dApp to open inside MetaMask in-app browser.
-  // We intentionally return null here so the code prefers WalletConnect WC flow instead.
-  metamask: () => null,
+  metamask: (dappUrl) => `https://metamask.app.link/dapp/${dappUrl}`,
   'coinbase-wallet': (dappUrl) => `https://go.cb-w.com/dapp?uri=${encodeURIComponent(dappUrl)}`,
   trust: (dappUrl) => `https://link.trustwallet.com/open_url?uri=${encodeURIComponent(dappUrl)}`,
 };
@@ -22,16 +20,6 @@ const MOBILE_WALLET_DEEP_LINKS = {
 function isMobileDevice() {
   if (typeof navigator === 'undefined') return false;
   return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
-function isAndroidDevice() {
-  if (typeof navigator === 'undefined') return false;
-  return /Android/i.test(navigator.userAgent);
-}
-
-function isIosDevice() {
-  if (typeof navigator === 'undefined') return false;
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
 function isMetaMaskMobile() {
@@ -56,118 +44,6 @@ function buildCurrentDappUrl() {
   }
   
   return window.location.href;
-}
-
-function openDeepLink(link, targetWindow = null) {
-  if (typeof window === 'undefined' || !link) return;
-
-  if (targetWindow && !targetWindow.closed) {
-    try {
-      targetWindow.location.href = link;
-      return;
-    } catch (navErr) {
-      console.info('Target window navigation failed', navErr);
-    }
-  }
-
-  try {
-    window.location.assign(link);
-  } catch (navErr) {
-    console.info('window.location.assign navigation failed', navErr);
-  }
-
-  try {
-    const anchor = document.createElement('a');
-    anchor.href = link;
-    anchor.style.display = 'none';
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-  } catch (clickErr) {
-    console.info('Anchor click navigation failed', clickErr);
-  }
-}
-
-async function tryOpenDeepLinkCandidates(links = [], targetWindow = null) {
-  if (!Array.isArray(links) || links.length === 0) return false;
-
-  for (const link of links) {
-    if (!link) continue;
-
-    let resolved = false;
-    const openedPromise = new Promise((resolve) => {
-      const cleanup = () => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        window.removeEventListener('pagehide', handlePageHide);
-        window.removeEventListener('blur', handleBlur);
-      };
-
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'hidden') {
-          resolved = true;
-          cleanup();
-          resolve(true);
-        }
-      };
-
-      const handlePageHide = () => {
-        if (!resolved) {
-          resolved = true;
-          cleanup();
-          resolve(true);
-        }
-      };
-
-      const handleBlur = () => {
-        if (!resolved) {
-          resolved = true;
-          cleanup();
-          resolve(true);
-        }
-      };
-
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      window.addEventListener('pagehide', handlePageHide);
-      window.addEventListener('blur', handleBlur);
-
-      setTimeout(() => {
-        if (!resolved) {
-          resolved = true;
-          cleanup();
-          resolve(false);
-        }
-      }, 1200);
-    });
-
-    console.info('Trying deep link candidate:', link);
-    openDeepLink(link, targetWindow);
-    const opened = await openedPromise;
-    if (opened) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function buildMetaMaskWalletConnectLink(uri) {
-  if (!uri || typeof uri !== 'string') return null;
-  const redirectUrl = encodeURIComponent(buildCurrentDappUrl());
-  const encodedUri = encodeURIComponent(uri);
-  const universal = `https://metamask.app.link/wc?uri=${encodedUri}&redirectUrl=${redirectUrl}`;
-  const native = `metamask://wc?uri=${encodedUri}&redirectUrl=${redirectUrl}`;
-  const browserFallback = encodeURIComponent(universal);
-  const androidIntent = `intent://wc?uri=${encodedUri}&redirectUrl=${redirectUrl}#Intent;package=io.metamask;scheme=metamask;S.browser_fallback_url=${browserFallback};end`;
-
-  if (isAndroidDevice()) {
-    return [androidIntent, native, universal];
-  }
-
-  if (isIosDevice()) {
-    return [native, universal];
-  }
-
-  return [universal];
 }
 
 export function getMobileWalletRedirectUrl(walletType = 'metamask') {
@@ -301,14 +177,9 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
       // Jika error lain, fallback ke deep link pada mobile
       if (isMobile) {
         const redirectUrl = getMobileWalletRedirectUrl(walletType);
-        const walletWindow = typeof window !== 'undefined' ? window.open('about:blank', '_blank') : null;
         if (redirectUrl) {
-          console.log('📱 Redirecting ke wallet mobile app:', walletType, 'via popup window');
-          if (walletWindow && !walletWindow.closed) {
-            walletWindow.location.href = redirectUrl;
-          } else {
-            window.location.href = redirectUrl;
-          }
+          console.log('📱 Redirecting ke wallet mobile app:', walletType);
+          window.location.href = redirectUrl;
           return null;
         }
       }
@@ -318,98 +189,15 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
 
   // SCENARIO 2: Tidak ada provider, coba deep link ke mobile wallet app
   if (isMobile) {
-    // Try WalletConnect Web3 provider first (provides a WC URI we can deep-link to MetaMask mobile)
-    try {
-      const wcModule = await import('@walletconnect/web3-provider');
-      const WalletConnectProvider = wcModule?.default || wcModule;
-
-      const rpc = {};
-      const chainId = getConfiguredChainId();
-      rpc[chainId] = getConfiguredChainMetadata().rpcUrl;
-
-      const wcProvider = new WalletConnectProvider({ rpc, qrcode: false });
-
-      // When the provider emits a display URI (WalletConnect URI), open MetaMask app via deep link
-      wcProvider.on('display_uri', async (uri) => {
-        try {
-          const deepLinks = buildMetaMaskWalletConnectLink(uri);
-          if (!deepLinks || !Array.isArray(deepLinks) || deepLinks.length === 0) {
-            throw new Error('WC URI tidak valid');
-          }
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('_wallet_connecting', walletType);
-            sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
-          }
-          console.log('📱 Opening MetaMask with WC URI (attempts):', deepLinks);
-
-          const opened = await tryOpenDeepLinkCandidates(deepLinks);
-          if (!opened) {
-            console.warn('MetaMask deep links did not open, falling back to universal link');
-            const fallbackLink = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
-            try {
-              window.location.assign(fallbackLink);
-            } catch (assignErr) {
-              console.info('Fallback assign failed', assignErr);
-            }
-          }
-
-          // Safety: copy URI to clipboard silently for manual paste fallback
-          setTimeout(async () => {
-            try {
-              if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                await navigator.clipboard.writeText(uri);
-                console.info('WC URI copied to clipboard as fallback');
-              }
-            } catch (copyErr) {
-              console.info('Clipboard copy failed', copyErr);
-            }
-          }, 1200);
-        } catch (e) {
-          console.warn('Gagal membuka deep link, fallback ke universal link', e);
-          const fallbackLink = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
-          try {
-            window.location.assign(fallbackLink);
-          } catch (assignErr) {
-            console.info('Fallback assign failed', assignErr);
-          }
-        }
-      });
-
-      // Request enable -> will trigger display_uri event and resolve once connected
-      const accounts = await wcProvider.enable();
-      if (accounts && accounts.length) {
-        // Expose provider as window.ethereum so existing code paths continue to work
-        window.ethereum = wcProvider;
-        window.wcProvider = wcProvider;
-        return accounts[0];
+    const redirectUrl = getMobileWalletRedirectUrl(walletType);
+    if (redirectUrl) {
+      console.log('📱 Opening MetaMask/Wallet mobile app...');
+      // Store state untuk tracking setelah return dari deep link
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('_wallet_connecting', walletType);
+        sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
       }
-      // If no accounts returned, throw so outer handler shows fallback guidance
-      throw new Error('No accounts returned from WalletConnect enable');
-      } catch (wcError) {
-      // If WalletConnect provider import or flow fails, do NOT fallback to /dapp/ deep-link (it opens the dApp inside MetaMask).
-      console.warn('WalletConnect fallback failed or not installed:', wcError);
-      const redirectUrl = getMobileWalletRedirectUrl(walletType);
-      if (redirectUrl) {
-        // For non-MetaMask wallets we can still attempt a deep link
-        console.log('📱 Opening other wallet mobile app (deep link fallback)...');
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('_wallet_connecting', walletType);
-          sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
-        }
-        window.location.assign(redirectUrl);
-        return null;
-      }
-
-      // If no redirect URL available (MetaMask case), silently copy last WC URI to clipboard for manual paste fallback
-      try {
-        const lastUri = wcProvider && wcProvider.connector && wcProvider.connector.uri ? wcProvider.connector.uri : null;
-        if (lastUri && typeof navigator !== 'undefined' && navigator.clipboard) {
-          await navigator.clipboard.writeText(lastUri);
-          console.info('WC URI copied to clipboard for manual paste into MetaMask.');
-        }
-      } catch (e) {
-        console.info('Failed to copy WC URI to clipboard', e);
-      }
+      window.location.href = redirectUrl;
       return null;
     }
   }
@@ -421,92 +209,6 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
     '2. Atau buka di browser MetaMask mobile app\n' +
     '3. Atau gunakan wallet lain (Coinbase, Trust Wallet)'
   );
-}
-
-/**
- * Open MetaMask mobile app with a WalletConnect URI for sign-only flow.
- * This creates a WalletConnect provider, listens for the display_uri event,
- * then opens MetaMask via the universal wc link including redirect back to the dApp.
- */
-export async function openMetaMaskSignOnly() {
-  if (typeof window === 'undefined') {
-    throw new Error('Function must be called in a browser environment');
-  }
-
-  if (!isMobileDevice()) {
-    throw new Error('Open MetaMask (sign only) hanya didukung di perangkat mobile');
-  }
-
-  try {
-    const wcModule = await import('@walletconnect/web3-provider');
-    const WalletConnectProvider = wcModule?.default || wcModule;
-
-    const rpc = {};
-    const chainId = getConfiguredChainId();
-    rpc[chainId] = getConfiguredChainMetadata().rpcUrl;
-
-    const wcProvider = new WalletConnectProvider({ rpc, qrcode: false });
-
-    const uriPromise = new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('WC URI timeout'));
-      }, 10000);
-
-      wcProvider.once('display_uri', (uri) => {
-        clearTimeout(timeout);
-        resolve(uri);
-      });
-    });
-
-    const enablePromise = wcProvider.enable();
-    const uri = await uriPromise;
-
-    try {
-      const deepLinks = buildMetaMaskWalletConnectLink(uri);
-      if (!deepLinks || !Array.isArray(deepLinks) || deepLinks.length === 0) {
-        throw new Error('WC URI tidak valid');
-      }
-      sessionStorage.setItem('_wallet_connecting', 'metamask');
-      sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
-      window.wcProvider = wcProvider;
-      console.log('📱 Opening MetaMask (sign only) attempts:', deepLinks);
-
-      const opened = await tryOpenDeepLinkCandidates(deepLinks, walletWindow);
-      if (!opened) {
-        console.warn('MetaMask deep links did not open, falling back to universal link');
-        const fallbackLink = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
-        try {
-          if (walletWindow && !walletWindow.closed) {
-            walletWindow.location.assign(fallbackLink);
-          } else {
-            window.location.assign(fallbackLink);
-          }
-        } catch (assignErr) {
-          console.info('Fallback assign failed', assignErr);
-        }
-      }
-
-      setTimeout(async () => {
-        try {
-          if (typeof navigator !== 'undefined' && navigator.clipboard) {
-            await navigator.clipboard.writeText(uri);
-            console.info('WC URI copied to clipboard as manual fallback');
-          }
-        } catch (copyErr) {
-          console.info('Clipboard copy failed', copyErr);
-        }
-      }, 1200);
-    } catch (e) {
-      console.warn('Gagal membangun deep link MetaMask:', e);
-    }
-
-    await enablePromise;
-
-    return true;
-  } catch (err) {
-    console.warn('openMetaMaskSignOnly error:', err);
-    throw err;
-  }
 }
 
 export async function ensureCorrectNetwork(expectedChainId = getConfiguredChainId()) {

@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
-import { openMetaMaskSignOnly } from '../Utils/artVibesMarket';
 
 export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
   // Daftar wallet yang akan ditampilkan di pop-up
@@ -72,7 +71,7 @@ export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
             {/* WALLET LIST - COMPACT */}
             <div className="px-5 py-4 space-y-2.5">
               {wallets.map((wallet, index) => (
-                <motion.div
+                <motion.button
                   key={index}
                   whileHover={{ scale: 1.02, x: 4 }}
                   whileTap={{ scale: 0.98 }}
@@ -82,9 +81,7 @@ export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
                     }
                     onClose();
                   }}
-                  role="button"
-                  tabIndex={0}
-                  className="group relative flex w-full cursor-pointer items-center gap-3 rounded-xl border border-white/5 bg-slate-900/40 px-4 py-3 text-left transition-all duration-200 hover:border-emerald-500/40 hover:bg-slate-900/60 hover:shadow-[0_0_12px_-6px_rgba(16,185,129,0.3)]"
+                  className="group relative flex w-full items-center gap-3 rounded-xl border border-white/5 bg-slate-900/40 px-4 py-3 text-left transition-all duration-200 hover:border-emerald-500/40 hover:bg-slate-900/60 hover:shadow-[0_0_12px_-6px_rgba(16,185,129,0.3)]"
                 >
                   {/* WALLET ICON */}
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-white/5 bg-slate-950/60 group-hover:scale-110 transition-transform duration-200">
@@ -114,26 +111,7 @@ export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
-                  {wallet.key === 'metamask' && (
-                    <div className="absolute right-3 bottom-3">
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            await openMetaMaskSignOnly();
-                          } catch (err) {
-                            console.error('openMetaMaskSignOnly failed', err);
-                            // eslint-disable-next-line no-alert
-                            alert('Gagal membuka MetaMask otomatis. Pastikan Anda memilih MetaMask app saat chooser muncul, lalu coba lagi.');
-                          }
-                        }}
-                        className="text-[11px] px-2 py-1 rounded-md bg-emerald-600 text-white hover:brightness-110"
-                      >
-                        Open MetaMask (sign only)
-                      </button>
-                    </div>
-                  )}
-                </motion.div>
+                </motion.button>
               ))}
             </div>
 
