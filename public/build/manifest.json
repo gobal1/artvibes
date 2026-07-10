@@ -1,4 +1,13 @@
 {
+  "node_modules/@walletconnect/web3-provider/dist/esm/index.js": {
+    "file": "assets/esm-DdOiSNRl.js",
+    "name": "esm",
+    "src": "node_modules/@walletconnect/web3-provider/dist/esm/index.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
   "resources/css/app.css": {
     "file": "assets/app-D1AeVlCs.css",
     "name": "app",
@@ -9,10 +18,13 @@
     "isEntry": true
   },
   "resources/js/app.jsx": {
-    "file": "assets/app-BKN3wr6q.js",
+    "file": "assets/app-DP7DCeh2.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,
+    "dynamicImports": [
+      "node_modules/@walletconnect/web3-provider/dist/esm/index.js"
+    ],
     "css": [
       "assets/app-D1AeVlCs.css"
     ]

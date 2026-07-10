@@ -12,7 +12,9 @@ const CHAIN_METADATA = {
 };
 
 const MOBILE_WALLET_DEEP_LINKS = {
-  metamask: (dappUrl) => `https://metamask.app.link/dapp/${dappUrl}`,
+  // Do NOT use /dapp/ for MetaMask — that forces the dApp to open inside MetaMask in-app browser.
+  // We intentionally return null here so the code prefers WalletConnect WC flow instead.
+  metamask: () => null,
   'coinbase-wallet': (dappUrl) => `https://go.cb-w.com/dapp?uri=${encodeURIComponent(dappUrl)}`,
   trust: (dappUrl) => `https://link.trustwallet.com/open_url?uri=${encodeURIComponent(dappUrl)}`,
 };
@@ -44,6 +46,12 @@ function buildCurrentDappUrl() {
   }
   
   return window.location.href;
+}
+
+function buildMetaMaskWalletConnectLink(uri) {
+  if (!uri || typeof uri !== 'string') return null;
+  const redirectUrl = encodeURIComponent(buildCurrentDappUrl());
+  return `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}&redirectUrl=${redirectUrl}`;
 }
 
 export function getMobileWalletRedirectUrl(walletType = 'metamask') {
@@ -203,15 +211,21 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
       // When the provider emits a display URI (WalletConnect URI), open MetaMask app via universal link
       wcProvider.on('display_uri', (uri) => {
         try {
-          const deepLink = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
-          sessionStorage.setItem('_wallet_connecting', walletType);
-          sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
+          const deepLink = buildMetaMaskWalletConnectLink(uri);
+          if (!deepLink) {
+            throw new Error('WC URI tidak valid');
+          }
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('_wallet_connecting', walletType);
+            sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
+          }
           console.log('📱 Opening MetaMask with WC URI...');
-          // Open in new tab/window so the dApp stays alive in background when possible
-          window.open(deepLink, '_blank');
+          // Open using location.href so the current browser tab remains available in the background.
+          window.location.href = deepLink;
         } catch (e) {
           console.warn('Gagal membuka deep link, fallback ke navigation', e);
-          window.location.href = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
+          const fallbackLink = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
+          window.location.href = fallbackLink;
         }
       });
 
@@ -220,14 +234,16 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
       if (accounts && accounts.length) {
         // Expose provider as window.ethereum so existing code paths continue to work
         window.ethereum = wcProvider;
+        window.wcProvider = wcProvider;
         return accounts[0];
       }
-    } catch (wcError) {
-      // If WalletConnect provider not installed or fails, fallback to simple deep link to open dapp in MetaMask
+      } catch (wcError) {
+      // If WalletConnect provider import or flow fails, do NOT fallback to /dapp/ deep-link (it opens the dApp inside MetaMask).
       console.warn('WalletConnect fallback failed or not installed:', wcError);
       const redirectUrl = getMobileWalletRedirectUrl(walletType);
       if (redirectUrl) {
-        console.log('📱 Opening MetaMask/Wallet mobile app (deep link fallback)...');
+        // For non-MetaMask wallets we can still attempt a deep link
+        console.log('📱 Opening other wallet mobile app (deep link fallback)...');
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('_wallet_connecting', walletType);
           sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
@@ -235,6 +251,18 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
         window.location.href = redirectUrl;
         return null;
       }
+
+      // If no redirect URL available (MetaMask case), show instruction so user picks their browser in the chooser
+      try {
+        // Small user-facing guidance to avoid MetaMask in-app browser
+        // Use confirm so mobile user sees instruction; callers can override with custom UI
+        const msg = 'Jika muncul pilihan aplikasi, pilih BROWSER (mis. Chrome), bukan MetaMask. Setelah memilih browser, coba "Connect" lagi.';
+        // eslint-disable-next-line no-alert
+        alert(msg);
+      } catch (e) {
+        console.info('User notification failed', e);
+      }
+      return null;
     }
   }
 

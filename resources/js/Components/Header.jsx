@@ -172,7 +172,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
       
       if (!walletAddress) {
         // Wallet selection redirected the browser to a mobile wallet app (Android/iOS)
-        // Close modal dan tunggu return dari deep link
+        // Close modal and wait for the mobile wallet return flow.
         setIsConnectingModalOpen(false);
         return;
       }
@@ -205,7 +205,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
       // STEP 4: Request signature dari user
       setConnectingStatus('signing');
       setConnectingMessage('Mohon tandatangani pesan di wallet Anda');
-      setConnectingDetails('Jangan khawatir, ini tidak memerlukan gas atau transaksi');
+      setConnectingDetails('Tanda tangan ini hanya auth, bukan transaksi on-chain. Jangan refresh halaman.');
 
       let signature;
       try {

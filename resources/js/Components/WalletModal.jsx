@@ -8,7 +8,7 @@ export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
     {
       name: 'MetaMask',
       icon: 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
-      description: 'Buka di browser aplikasi MetaMask atau ekstensi MetaMask',
+      description: 'Gunakan MetaMask via WalletConnect. Jika muncul pilihan aplikasi, pilih browser (mis. Chrome), bukan MetaMask.',
       popular: true,
       key: 'metamask',
     },
