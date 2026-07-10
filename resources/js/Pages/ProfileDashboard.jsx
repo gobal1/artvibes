@@ -4,7 +4,7 @@ import { Mail, Lock, ArrowRight, X, ShieldCheck, Plus, MessageSquare, Trash2, Ed
 import ChatSidebar from '../Components/ChatSidebar';
 import DashboardActivityPage from './DashboardActivityPage';
 import { uploadAssetToIpfs, uploadMetadataToIpfs, linkNftToProduct } from '../Utils/ipfsApi';
-import { getConfiguredChainId, getEthereumProvider, mintNftOnChain, listTokenOnChain, updateListingPriceOnChain, cancelListingOnChain, getNativeCurrencySymbol } from '../Utils/artVibesMarket';
+import { getConfiguredChainId, getEthereumProvider, requireWalletAccess, mintNftOnChain, listTokenOnChain, updateListingPriceOnChain, cancelListingOnChain, getNativeCurrencySymbol } from '../Utils/artVibesMarket';
 
 const createEmptyFinanceAnalytics = () => ({
   months: Array.from({ length: 12 }, (_, index) => ({ label: `Tx ${index + 1}`, value: 0 })),
@@ -757,34 +757,13 @@ export default function ProfileDashboard({
         if (!isUpdate && selectedImage && savedProduct?.idproduk) {
           try {
             setNotifications([
-              { id: Date.now(), text: 'Mengunggah file ke IPFS...', type: 'info', read: false },
+              { id: Date.now(), text: 'Menyiapkan wallet untuk transaksi mint...', type: 'info', read: false },
               ...notifications,
             ]);
 
-            // Switch ke chain yang dipilih user sebelum mint
             const chosenChain = CHAIN_OPTIONS.find(c => c.id === selectedChain);
-            if (chosenChain && typeof window.ethereum !== 'undefined') {
-              try {
-                await window.ethereum.request({
-                  method: 'wallet_switchEthereumChain',
-                  params: [{ chainId: chosenChain.hexId }],
-                });
-              } catch (switchErr) {
-                if (switchErr?.code === 4902 && chosenChain.rpc) {
-                  await window.ethereum.request({
-                    method: 'wallet_addEthereumChain',
-                    params: [{
-                      chainId: chosenChain.hexId,
-                      chainName: chosenChain.name,
-                      nativeCurrency: { name: chosenChain.symbol, symbol: chosenChain.symbol, decimals: 18 },
-                      rpcUrls: [chosenChain.rpc],
-                      blockExplorerUrls: [chosenChain.explorer],
-                    }],
-                  });
-                } else {
-                  throw new Error(`Gagal switch ke ${chosenChain.name}: ${switchErr?.message}`);
-                }
-              }
+            if (chosenChain) {
+              await requireWalletAccess(chosenChain.id);
             }
 
             const assetUpload = await uploadAssetToIpfs(selectedImage, newTitle);

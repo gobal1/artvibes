@@ -39,10 +39,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
   const [connectingDetails, setConnectingDetails] = useState('');
   const [selectedWalletType, setSelectedWalletType] = useState(null);
 
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: "Transaksi baru sukses dikonfirmasi.", type: "success", read: false },
-    { id: 2, text: "Pesan baru masuk dari kolektor.", type: "info", read: false },
-  ]);
+  const [notifications, setNotifications] = useState([]);
   const [chatMessages, setChatMessages] = useState([
     { id: 1, sender: 'support', text: "Halo! Ada yang bisa dibantu hari ini?", time: "14:32" },
   ]);
@@ -52,7 +49,8 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
   }, [globalAddress, userAddress]);
 
   useEffect(() => {
-    if (typeof window.ethereum === 'undefined') return;
+    const provider = getEthereumProvider();
+    if (!provider) return;
 
     const handleAccountsChanged = (accounts) => {
       if (Array.isArray(accounts) && accounts.length > 0) {
@@ -66,7 +64,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
     };
 
     const handleChainChanged = () => {
-      const walletAddress = window.ethereum.selectedAddress || userAddress || globalAddress;
+      const walletAddress = provider.selectedAddress || userAddress || globalAddress;
       if (walletAddress && typeof setGlobalAddress === 'function') {
         setGlobalAddress(walletAddress.toLowerCase());
       }
@@ -74,7 +72,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
 
     const initializeWallet = async () => {
       try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        const accounts = await provider.request({ method: 'eth_accounts' });
         handleAccountsChanged(accounts);
       } catch (error) {
         console.warn('MetaMask account init warning:', error);
@@ -82,12 +80,16 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
     };
 
     initializeWallet();
-    window.ethereum.on('accountsChanged', handleAccountsChanged);
-    window.ethereum.on('chainChanged', handleChainChanged);
+    if (typeof provider.on === 'function') {
+      provider.on('accountsChanged', handleAccountsChanged);
+      provider.on('chainChanged', handleChainChanged);
+    }
 
     return () => {
-      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-      window.ethereum.removeListener('chainChanged', handleChainChanged);
+      if (typeof provider.removeListener === 'function') {
+        provider.removeListener('accountsChanged', handleAccountsChanged);
+        provider.removeListener('chainChanged', handleChainChanged);
+      }
     };
   }, [setGlobalAddress, userAddress, globalAddress]);
 
