@@ -12,14 +12,36 @@ const CHAIN_METADATA = {
 };
 
 const MOBILE_WALLET_DEEP_LINKS = {
-  metamask: (dappUrl) => `https://metamask.app.link/dapp/${encodeURIComponent(dappUrl)}`,
+  metamask: (dappUrl) => buildMetaMaskDeepLink(dappUrl),
   'coinbase-wallet': (dappUrl) => `https://go.cb-w.com/dapp?uri=${encodeURIComponent(dappUrl)}`,
   trust: (dappUrl) => `https://link.trustwallet.com/open_url?uri=${encodeURIComponent(dappUrl)}`,
 };
 
+function isAndroidDevice() {
+  if (typeof navigator === 'undefined') return false;
+  return /Android/i.test(navigator.userAgent);
+}
+
+function isIosDevice() {
+  if (typeof navigator === 'undefined') return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 function isMobileDevice() {
   if (typeof navigator === 'undefined') return false;
   return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function buildMetaMaskDeepLink(dappUrl) {
+  const encoded = encodeURIComponent(dappUrl);
+  const universalLink = `https://metamask.app.link/dapp/${encoded}`;
+
+  if (isAndroidDevice()) {
+    const browserFallback = encodeURIComponent(universalLink);
+    return `intent://dapp/${encoded}#Intent;package=io.metamask;scheme=metamask;S.browser_fallback_url=${browserFallback};end`;
+  }
+
+  return universalLink;
 }
 
 function isMetaMaskMobile() {
@@ -140,11 +162,15 @@ export function hasEthereumProvider() {
 
 export async function connectWallet({ walletType = 'metamask' } = {}) {
   const provider = getEthereumProvider();
-
   if (!provider) {
     if (isMobileDevice()) {
+      const redirectUrl = getMobileWalletRedirectUrl(walletType);
+      if (redirectUrl && typeof window !== 'undefined') {
+        window.location.href = redirectUrl;
+        return null;
+      }
       throw new Error(
-        'MetaMask tidak tersedia di browser ini. Buka situs ini di browser MetaMask mobile atau pasang MetaMask mobile.'
+        'MetaMask tidak tersedia di browser ini. Pastikan MetaMask mobile terpasang dan coba lagi.'
       );
     }
     throw new Error(
