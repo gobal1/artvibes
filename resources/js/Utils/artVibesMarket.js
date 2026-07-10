@@ -34,14 +34,10 @@ function isMobileDevice() {
 
 function buildMetaMaskDeepLink(dappUrl) {
   const encoded = encodeURIComponent(dappUrl);
-  const universalLink = `https://metamask.app.link/dapp/${encoded}`;
-
   if (isAndroidDevice()) {
-    const browserFallback = encodeURIComponent(universalLink);
-    return `intent://dapp/${encoded}#Intent;package=io.metamask;scheme=metamask;S.browser_fallback_url=${browserFallback};end`;
+    return `metamask://dapp/${encoded}`;
   }
-
-  return universalLink;
+  return `https://metamask.app.link/dapp/${encoded}`;
 }
 
 function isMetaMaskMobile() {
