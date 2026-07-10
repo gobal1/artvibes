@@ -220,12 +220,26 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
             sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
           }
           console.log('📱 Opening MetaMask with WC URI...');
-          // Open using location.href so the current browser tab remains available in the background.
-          window.location.href = deepLink;
+          // Use location.assign so the current tab remains in history and can be resumed
+          window.location.assign(deepLink);
+
+          // As a safety fallback: if navigation didn't occur (some Android choosers), copy the URI and show instructions
+          setTimeout(async () => {
+            try {
+              if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                await navigator.clipboard.writeText(uri);
+                // eslint-disable-next-line no-alert
+                alert('Jika MetaMask tidak terbuka, URI WalletConnect telah disalin ke clipboard. Buka MetaMask (pilih Browser) dan paste URI untuk menyambung.');
+              }
+            } catch (copyErr) {
+              // ignore clipboard errors
+              console.info('Clipboard copy failed', copyErr);
+            }
+          }, 1200);
         } catch (e) {
           console.warn('Gagal membuka deep link, fallback ke navigation', e);
           const fallbackLink = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
-          window.location.href = fallbackLink;
+          window.location.assign(fallbackLink);
         }
       });
 
@@ -237,6 +251,8 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
         window.wcProvider = wcProvider;
         return accounts[0];
       }
+      // If no accounts returned, throw so outer handler shows fallback guidance
+      throw new Error('No accounts returned from WalletConnect enable');
       } catch (wcError) {
       // If WalletConnect provider import or flow fails, do NOT fallback to /dapp/ deep-link (it opens the dApp inside MetaMask).
       console.warn('WalletConnect fallback failed or not installed:', wcError);
@@ -248,17 +264,28 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
           sessionStorage.setItem('_wallet_connecting', walletType);
           sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
         }
-        window.location.href = redirectUrl;
+        window.location.assign(redirectUrl);
         return null;
       }
 
       // If no redirect URL available (MetaMask case), show instruction so user picks their browser in the chooser
       try {
-        // Small user-facing guidance to avoid MetaMask in-app browser
-        // Use confirm so mobile user sees instruction; callers can override with custom UI
-        const msg = 'Jika muncul pilihan aplikasi, pilih BROWSER (mis. Chrome), bukan MetaMask. Setelah memilih browser, coba "Connect" lagi.';
+        const msg = 'Jika muncul pilihan aplikasi, pilih BROWSER (mis. Chrome), bukan MetaMask. Jika MetaMask tidak otomatis terbuka, tekan OK untuk menyalin URI WalletConnect ke clipboard lalu buka MetaMask (pilih browser) dan paste URI.';
         // eslint-disable-next-line no-alert
-        alert(msg);
+        if (typeof window !== 'undefined' && window.confirm(msg)) {
+          // Try to copy last known URI if available
+          try {
+            // The wcProvider may still have a connector with uri
+            const lastUri = wcProvider && wcProvider.connector && wcProvider.connector.uri ? wcProvider.connector.uri : null;
+            if (lastUri && navigator.clipboard) {
+              await navigator.clipboard.writeText(lastUri);
+              // eslint-disable-next-line no-alert
+              alert('WC URI telah disalin ke clipboard. Silakan buka MetaMask (pilih Browser) dan paste untuk menyambung.');
+            }
+          } catch (copyErr) {
+            console.info('Gagal menyalin ke clipboard', copyErr);
+          }
+        }
       } catch (e) {
         console.info('User notification failed', e);
       }
@@ -308,11 +335,22 @@ export async function openMetaMaskSignOnly() {
         sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
         // Keep provider around for later use
         window.wcProvider = wcProvider;
-        // Use location.href so browser tab is backgrounded and MetaMask takes over
-        window.location.href = deepLink;
+        // Use location.assign so the current tab remains available in history
+        window.location.assign(deepLink);
+
+        // Safety: copy URI to clipboard after a short delay for choosers that fail to navigate
+        setTimeout(async () => {
+          try {
+            if (navigator && navigator.clipboard) {
+              await navigator.clipboard.writeText(uri);
+            }
+          } catch (copyErr) {
+            console.info('Clipboard copy failed', copyErr);
+          }
+        }, 1200);
       } catch (e) {
         console.warn('Gagal membangun deep link MetaMask:', e);
-        window.location.href = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
+        window.location.assign(`https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`);
       }
     });
 

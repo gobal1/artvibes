@@ -120,8 +120,9 @@ export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
                           try {
                             await openMetaMaskSignOnly();
                           } catch (err) {
+                            console.error('openMetaMaskSignOnly failed', err);
                             // eslint-disable-next-line no-alert
-                            alert('Gagal membuka MetaMask: ' + (err?.message || err));
+                            alert('Gagal membuka MetaMask secara otomatis. Jika muncul pilihan aplikasi, pilih BROWSER (mis. Chrome). Jika tetap tidak berhasil, buka MetaMask lalu pilih opsi WalletConnect dan paste URI yang telah disalin ke clipboard.');
                           }
                         }}
                         className="text-[11px] px-2 py-1 rounded-md bg-emerald-600 text-white hover:brightness-110"
