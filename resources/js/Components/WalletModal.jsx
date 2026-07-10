@@ -1,7 +1,7 @@
 import React from 'react';
-import { openMetaMaskSignOnly } from '../Utils/artVibesMarket';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { openMetaMaskSignOnly } from '../Utils/artVibesMarket';
 
 export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
   // Daftar wallet yang akan ditampilkan di pop-up
@@ -9,7 +9,7 @@ export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
     {
       name: 'MetaMask',
       icon: 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
-      description: 'Gunakan MetaMask via WalletConnect. Jika muncul pilihan aplikasi, pilih browser (mis. Chrome), bukan MetaMask.',
+      description: 'Buka di browser aplikasi MetaMask atau ekstensi MetaMask',
       popular: true,
       key: 'metamask',
     },
@@ -72,7 +72,7 @@ export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
             {/* WALLET LIST - COMPACT */}
             <div className="px-5 py-4 space-y-2.5">
               {wallets.map((wallet, index) => (
-                <motion.button
+                <motion.div
                   key={index}
                   whileHover={{ scale: 1.02, x: 4 }}
                   whileTap={{ scale: 0.98 }}
@@ -82,7 +82,9 @@ export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
                     }
                     onClose();
                   }}
-                  className="group relative flex w-full items-center gap-3 rounded-xl border border-white/5 bg-slate-900/40 px-4 py-3 text-left transition-all duration-200 hover:border-emerald-500/40 hover:bg-slate-900/60 hover:shadow-[0_0_12px_-6px_rgba(16,185,129,0.3)]"
+                  role="button"
+                  tabIndex={0}
+                  className="group relative flex w-full cursor-pointer items-center gap-3 rounded-xl border border-white/5 bg-slate-900/40 px-4 py-3 text-left transition-all duration-200 hover:border-emerald-500/40 hover:bg-slate-900/60 hover:shadow-[0_0_12px_-6px_rgba(16,185,129,0.3)]"
                 >
                   {/* WALLET ICON */}
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-white/5 bg-slate-950/60 group-hover:scale-110 transition-transform duration-200">
@@ -122,7 +124,7 @@ export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
                           } catch (err) {
                             console.error('openMetaMaskSignOnly failed', err);
                             // eslint-disable-next-line no-alert
-                            alert('Gagal membuka MetaMask secara otomatis. Jika muncul pilihan aplikasi, pilih BROWSER (mis. Chrome). Jika tetap tidak berhasil, buka MetaMask lalu pilih opsi WalletConnect dan paste URI yang telah disalin ke clipboard.');
+                            alert('Gagal membuka MetaMask otomatis. Pastikan Anda memilih MetaMask app saat chooser muncul, lalu coba lagi.');
                           }
                         }}
                         className="text-[11px] px-2 py-1 rounded-md bg-emerald-600 text-white hover:brightness-110"
@@ -131,7 +133,7 @@ export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
                       </button>
                     </div>
                   )}
-                </motion.button>
+                </motion.div>
               ))}
             </div>
 

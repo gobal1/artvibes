@@ -48,15 +48,33 @@ function buildCurrentDappUrl() {
   return window.location.href;
 }
 
+function openDeepLink(link) {
+  if (typeof window === 'undefined' || !link) return;
+  try {
+    window.location.href = link;
+  } catch (navErr) {
+    console.info('window.location.href navigation failed', navErr);
+  }
+
+  try {
+    const anchor = document.createElement('a');
+    anchor.href = link;
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+  } catch (clickErr) {
+    console.info('Anchor click navigation failed', clickErr);
+  }
+}
+
 function buildMetaMaskWalletConnectLink(uri) {
   if (!uri || typeof uri !== 'string') return null;
   const redirectUrl = encodeURIComponent(buildCurrentDappUrl());
-  // Prefer native scheme to open MetaMask app directly where possible
   const native = `metamask://wc?uri=${encodeURIComponent(uri)}&redirectUrl=${redirectUrl}`;
-  const nativeNoRedirect = `metamask://wc?uri=${encodeURIComponent(uri)}`;
+  const androidIntent = `intent://wc?uri=${encodeURIComponent(uri)}&redirectUrl=${redirectUrl}#Intent;package=io.metamask;scheme=metamask;end`;
   const universal = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}&redirectUrl=${redirectUrl}`;
-  // Return an array of attempts: native -> native no-redirect -> universal
-  return [native, nativeNoRedirect, universal];
+  return [native, androidIntent, universal];
 }
 
 export function getMobileWalletRedirectUrl(walletType = 'metamask') {
@@ -229,7 +247,7 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
           // Try candidates in order; stop after first assignment (navigation likely occurs)
           for (const link of deepLinks) {
             try {
-              window.location.assign(link);
+              openDeepLink(link);
               // give short pause — navigation will usually take over
               break;
             } catch (navErr) {
@@ -344,9 +362,7 @@ export async function openMetaMaskSignOnly() {
 
         for (const link of deepLinks) {
           try {
-            window.location.assign(link);
-            break;
-          } catch (navErr) {
+              openDeepLink(link);
             console.info('Navigation attempt failed for link', link, navErr);
           }
         }

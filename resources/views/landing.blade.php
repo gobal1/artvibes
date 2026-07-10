@@ -11,7 +11,7 @@
         window.user = {!! Auth::check() ? json_encode(Auth::user()) : 'null' !!};
     </script>
 
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.jsx'])
 </head>
 <body>
     <div id="app"></div>
