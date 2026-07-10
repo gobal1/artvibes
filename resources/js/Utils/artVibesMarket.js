@@ -178,8 +178,12 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
       if (isMobile) {
         const redirectUrl = getMobileWalletRedirectUrl(walletType);
         if (redirectUrl) {
-          console.log('📱 Redirecting ke wallet mobile app:', walletType);
-          window.location.href = redirectUrl;
+          console.log('📱 Mobile wallet deep-link available:', walletType, redirectUrl);
+          // Don't force-navigation here. Let the UI prompt the user with the link
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('_wallet_connecting', walletType);
+            sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
+          }
           return null;
         }
       }
@@ -191,13 +195,13 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
   if (isMobile) {
     const redirectUrl = getMobileWalletRedirectUrl(walletType);
     if (redirectUrl) {
-      console.log('📱 Opening MetaMask/Wallet mobile app...');
-      // Store state untuk tracking setelah return dari deep link
+      console.log('📱 Mobile wallet deep-link available (not auto-opening):', redirectUrl);
+      // Store state untuk tracking after initiating connection
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('_wallet_connecting', walletType);
         sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
       }
-      window.location.href = redirectUrl;
+      // Do not redirect automatically; let the caller/UI decide how to surface the link
       return null;
     }
   }

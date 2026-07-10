@@ -4,7 +4,7 @@ import { Wallet, User, Bell, X, ShieldCheck, LogOut, Mail, Lock, ChevronDown } f
 import RhombusButton from './RhombusButton'; 
 import WalletModal from './WalletModal';
 import WalletConnectingModal from './WalletConnectingModal';
-import { connectWallet as connectWalletUtil, isReturningFromMobileWallet, clearMobileWalletMarkers } from '../Utils/artVibesMarket';
+import { connectWallet as connectWalletUtil, isReturningFromMobileWallet, clearMobileWalletMarkers, getMobileWalletRedirectUrl } from '../Utils/artVibesMarket';
 
 const GoogleLogo = ({ className }) => (
   <svg viewBox="0 0 533.5 544.3" className={className} aria-hidden="true">
@@ -38,6 +38,8 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
   const [connectingMessage, setConnectingMessage] = useState('Menghubungkan wallet...');
   const [connectingDetails, setConnectingDetails] = useState('');
   const [selectedWalletType, setSelectedWalletType] = useState(null);
+  const [isMobileRedirectPromptOpen, setIsMobileRedirectPromptOpen] = useState(false);
+  const [mobileRedirectUrl, setMobileRedirectUrl] = useState('');
 
   const [notifications, setNotifications] = useState([
     { id: 1, text: "Transaksi baru sukses dikonfirmasi.", type: "success", read: false },
@@ -177,9 +179,17 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
       const walletAddress = await connectWalletUtil({ walletType });
       
       if (!walletAddress) {
-        // Wallet selection redirected the browser to a mobile wallet app (Android/iOS)
-        // Close modal dan tunggu return dari deep link
+        // No injected provider detected or mobile deep-link scenario.
+        // Do not auto-redirect here; surface a prompt so the user can choose to open the MetaMask app or copy the link.
         setIsConnectingModalOpen(false);
+        try {
+          const url = getMobileWalletRedirectUrl(walletType);
+          setMobileRedirectUrl(url || '');
+          setIsMobileRedirectPromptOpen(Boolean(url));
+        } catch (e) {
+          setMobileRedirectUrl('');
+          setIsMobileRedirectPromptOpen(false);
+        }
         return;
       }
 
@@ -465,6 +475,22 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
         message={connectingMessage}
         details={connectingDetails}
       />
+
+      {isMobileRedirectPromptOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70">
+          <div className="w-full max-w-md bg-slate-950 rounded-xl p-5 border border-white/10">
+            <h3 className="text-lg font-bold text-white mb-2">Buka di MetaMask</h3>
+            <p className="text-sm text-slate-300 mb-4">Browser Anda belum menyediakan wallet injection. Anda bisa membuka tautan ini di aplikasi MetaMask atau di browser MetaMask untuk melanjutkan proses tanda tangan.</p>
+            <div className="flex gap-2 mb-3">
+              <a href={mobileRedirectUrl || '#'} target="_blank" rel="noreferrer" className="flex-1 text-center bg-emerald-500 text-slate-900 py-2 rounded-lg font-semibold">Buka di MetaMask</a>
+              <button onClick={() => { navigator.clipboard?.writeText(mobileRedirectUrl || ''); }} className="px-4 py-2 bg-slate-800 border border-white/10 rounded-lg text-sm">Salin Tautan</button>
+            </div>
+            <div className="text-right">
+              <button onClick={() => setIsMobileRedirectPromptOpen(false)} className="text-sm text-slate-300">Tutup</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* --- MODAL ACCOUNT (Dinamis) --- */}
       {isAccountModalOpen && (
