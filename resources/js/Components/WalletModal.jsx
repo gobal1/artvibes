@@ -13,12 +13,6 @@ export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
       key: 'metamask',
     },
     {
-      name: 'MetaMask (Sign only)',
-      icon: 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
-      description: 'Buka MetaMask di HP, tandatangani saja, lalu kembali ke Chrome',
-      key: 'metamask-sign-only',
-    },
-    {
       name: 'Coinbase Wallet',
       icon: 'https://images.ctfassets.net/q5ulk4bp65r7/1r5mhiK3uwt0wGISO861zA/426b334be01e747ee37da30b42fbb1bf/coinbase-wallet-logo.png',
       description: 'Gunakan Coinbase Wallet mobile atau ekstensi',

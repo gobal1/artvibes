@@ -12,7 +12,7 @@ const CHAIN_METADATA = {
 };
 
 const MOBILE_WALLET_DEEP_LINKS = {
-  metamask: () => null,
+  metamask: (dappUrl) => `https://metamask.app.link/dapp/${dappUrl}`,
   'coinbase-wallet': (dappUrl) => `https://go.cb-w.com/dapp?uri=${encodeURIComponent(dappUrl)}`,
   trust: (dappUrl) => `https://link.trustwallet.com/open_url?uri=${encodeURIComponent(dappUrl)}`,
 };
@@ -25,13 +25,6 @@ function isMobileDevice() {
 function isMetaMaskMobile() {
   if (typeof navigator === 'undefined') return false;
   return /MetaMask/.test(navigator.userAgent) && isMobileDevice();
-}
-
-function normalizeWalletType(walletType) {
-  if (!walletType || typeof walletType !== 'string') return 'metamask';
-  const normalized = walletType.toLowerCase().trim();
-  if (normalized === 'metamask-sign-only') return 'metamask';
-  return normalized;
 }
 
 function buildCurrentDappUrl() {
@@ -51,128 +44,6 @@ function buildCurrentDappUrl() {
   }
   
   return window.location.href;
-}
-
-function buildMetaMaskWalletConnectLink(uri) {
-  if (!uri || typeof uri !== 'string') return [];
-
-  const redirectUrl = encodeURIComponent(buildCurrentDappUrl());
-  const encodedUri = encodeURIComponent(uri);
-
-  const native = `metamask://wc?uri=${encodedUri}&redirectUrl=${redirectUrl}`;
-  const androidIntent = `intent://wc?uri=${encodedUri}&redirectUrl=${redirectUrl}#Intent;package=io.metamask;scheme=metamask;S.browser_fallback_url=${encodeURIComponent(`https://metamask.app.link/wc?uri=${encodedUri}&redirectUrl=${redirectUrl}`)};end`;
-  const universal = `https://metamask.app.link/wc?uri=${encodedUri}&redirectUrl=${redirectUrl}`;
-
-  if (isAndroidDevice()) {
-    return [androidIntent, universal, native];
-  }
-
-  if (isIosDevice()) {
-    return [native, universal];
-  }
-
-  return [universal];
-}
-
-function isAndroidDevice() {
-  if (typeof navigator === 'undefined') return false;
-  return /Android/i.test(navigator.userAgent);
-}
-
-function isIosDevice() {
-  if (typeof navigator === 'undefined') return false;
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
-function openDeepLink(link) {
-  if (typeof window === 'undefined' || !link) return;
-  try {
-    window.location.assign(link);
-  } catch (navErr) {
-    console.info('Deep link navigation failed', navErr);
-  }
-
-  try {
-    const anchor = document.createElement('a');
-    anchor.href = link;
-    anchor.style.display = 'none';
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-  } catch (clickErr) {
-    console.info('Deep link anchor click failed', clickErr);
-  }
-
-  if (isAndroidDevice() && link.startsWith('metamask://')) {
-    try {
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = link;
-      document.body.appendChild(iframe);
-      setTimeout(() => document.body.removeChild(iframe), 1000);
-    } catch (iframeErr) {
-      console.info('Android iframe fallback failed', iframeErr);
-    }
-  }
-}
-
-async function tryOpenDeepLinkCandidates(links = []) {
-  if (!Array.isArray(links) || links.length === 0) return false;
-
-  for (const link of links) {
-    if (!link) continue;
-
-    let resolved = false;
-    const openedPromise = new Promise((resolve) => {
-      const cleanup = () => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        window.removeEventListener('pagehide', handlePageHide);
-        window.removeEventListener('blur', handleBlur);
-      };
-
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'hidden') {
-          resolved = true;
-          cleanup();
-          resolve(true);
-        }
-      };
-
-      const handlePageHide = () => {
-        if (!resolved) {
-          resolved = true;
-          cleanup();
-          resolve(true);
-        }
-      };
-
-      const handleBlur = () => {
-        if (!resolved) {
-          resolved = true;
-          cleanup();
-          resolve(true);
-        }
-      };
-
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      window.addEventListener('pagehide', handlePageHide);
-      window.addEventListener('blur', handleBlur);
-
-      setTimeout(() => {
-        if (!resolved) {
-          resolved = true;
-          cleanup();
-          resolve(false);
-        }
-      }, 1300);
-    });
-
-    openDeepLink(link);
-    const opened = await openedPromise;
-    if (opened) return true;
-  }
-
-  return false;
 }
 
 export function getMobileWalletRedirectUrl(walletType = 'metamask') {
@@ -288,8 +159,6 @@ export function hasEthereumProvider() {
 }
 
 export async function connectWallet({ walletType = 'metamask' } = {}) {
-  const originalWalletType = walletType;
-  walletType = normalizeWalletType(walletType);
   const provider = getEthereumProvider();
   const isMobile = isMobileDevice();
 
@@ -305,94 +174,27 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
       if (error?.code === 4001) {
         throw new Error('Anda membatalkan permintaan koneksi wallet.');
       }
-      if (isMobile && walletType === 'metamask') {
-        console.log('📱 MetaMask mobile provider tidak berhasil, fallback ke WalletConnect');
-      } else {
-        if (isMobile) {
-          const redirectUrl = getMobileWalletRedirectUrl(walletType);
-          if (redirectUrl) {
-            console.log('📱 Redirecting ke wallet mobile app:', walletType);
-            window.location.href = redirectUrl;
-            return null;
-          }
+      // Jika error lain, fallback ke deep link pada mobile
+      if (isMobile) {
+        const redirectUrl = getMobileWalletRedirectUrl(walletType);
+        if (redirectUrl) {
+          console.log('📱 Redirecting ke wallet mobile app:', walletType);
+          window.location.href = redirectUrl;
+          return null;
         }
-        throw error;
       }
+      throw error;
     }
   }
 
-  // SCENARIO 2: Tidak ada provider, coba WalletConnect / deep link ke MetaMask mobile app
-  if (isMobile && walletType === 'metamask') {
-    try {
-      const wcModule = await import('@walletconnect/web3-provider');
-      const WalletConnectProvider = wcModule?.default || wcModule;
-
-      const chainId = getConfiguredChainId();
-      const rpc = {
-        [chainId]: getConfiguredChainMetadata().rpcUrl,
-      };
-
-      const wcProvider = new WalletConnectProvider({ rpc, qrcode: false });
-
-      const uriPromise = new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('WC URI timeout')), 15000);
-        wcProvider.once('display_uri', (uri) => {
-          clearTimeout(timeout);
-          resolve(uri);
-        });
-      });
-
-      const enablePromise = wcProvider.enable();
-      const uri = await uriPromise;
-
-      if (!uri || typeof uri !== 'string') {
-        throw new Error('WC URI tidak valid');
-      }
-
-      const deepLinks = buildMetaMaskWalletConnectLink(uri);
-      if (!Array.isArray(deepLinks) || deepLinks.length === 0) {
-        throw new Error('Tidak ada MetaMask deep link yang bisa digunakan');
-      }
-
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('_wallet_connecting', originalWalletType || walletType);
-        sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
-      }
-
-      console.log('📱 Opening MetaMask with WC URI:', deepLinks);
-      const opened = await tryOpenDeepLinkCandidates(deepLinks);
-      if (!opened) {
-        window.location.assign(deepLinks[0]);
-      }
-
-      const accounts = await enablePromise;
-      if (accounts && accounts.length) {
-        window.ethereum = wcProvider;
-        window.wcProvider = wcProvider;
-        return accounts[0];
-      }
-
-      throw new Error('No accounts returned from WalletConnect enable');
-    } catch (wcError) {
-      console.warn('WalletConnect failed:', wcError);
-      const redirectUrl = getMobileWalletRedirectUrl(walletType);
-      if (redirectUrl) {
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('_wallet_connecting', originalWalletType || walletType);
-          sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
-        }
-        window.location.href = redirectUrl;
-        return null;
-      }
-    }
-  }
-
+  // SCENARIO 2: Tidak ada provider, coba deep link ke mobile wallet app
   if (isMobile) {
     const redirectUrl = getMobileWalletRedirectUrl(walletType);
     if (redirectUrl) {
-      console.log('📱 Opening other wallet mobile app...');
+      console.log('📱 Opening MetaMask/Wallet mobile app...');
+      // Store state untuk tracking setelah return dari deep link
       if (typeof window !== 'undefined') {
-        sessionStorage.setItem('_wallet_connecting', originalWalletType || walletType);
+        sessionStorage.setItem('_wallet_connecting', walletType);
         sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
       }
       window.location.href = redirectUrl;
