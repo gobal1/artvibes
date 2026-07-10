@@ -39,6 +39,44 @@ function isMetaMaskMobile() {
   return /MetaMask/.test(navigator.userAgent) && isMobileDevice();
 }
 
+function normalizeWalletType(walletType) {
+  if (!walletType || typeof walletType !== 'string') return 'metamask';
+  const normalized = walletType.toLowerCase().trim();
+  if (normalized === 'metamask-sign-only') return 'metamask';
+  return normalized;
+}
+
+function setMobileWalletMarkers(walletType) {
+  if (typeof window === 'undefined') return;
+  const time = Date.now().toString();
+  try {
+    sessionStorage.setItem('_wallet_connecting', walletType);
+    sessionStorage.setItem('_wallet_connect_time', time);
+  } catch (sessionErr) {
+    console.info('Session storage not available', sessionErr);
+  }
+  try {
+    localStorage.setItem('_wallet_connecting', walletType);
+    localStorage.setItem('_wallet_connect_time', time);
+  } catch (localErr) {
+    console.info('Local storage not available', localErr);
+  }
+}
+
+function getMobileWalletMarkers() {
+  if (typeof window === 'undefined') return null;
+  let walletType = null;
+  let time = null;
+  try {
+    walletType = sessionStorage.getItem('_wallet_connecting') || localStorage.getItem('_wallet_connecting');
+    time = sessionStorage.getItem('_wallet_connect_time') || localStorage.getItem('_wallet_connect_time');
+  } catch (err) {
+    console.info('Unable to read mobile wallet markers', err);
+  }
+  if (!walletType || !time) return null;
+  return { walletType, time };
+}
+
 function buildCurrentDappUrl() {
   if (typeof window === 'undefined') return '';
   
@@ -73,6 +111,21 @@ function openDeepLink(link) {
     document.body.removeChild(anchor);
   } catch (clickErr) {
     console.info('Anchor click navigation failed', clickErr);
+  }
+
+  // Android custom scheme fallback: hidden iframe can improve app open reliability.
+  if (isAndroidDevice() && link.startsWith('metamask://')) {
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = link;
+      document.body.appendChild(iframe);
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+    } catch (iframeErr) {
+      console.info('Hidden iframe fallback failed', iframeErr);
+    }
   }
 }
 
@@ -146,11 +199,11 @@ function buildMetaMaskWalletConnectLink(uri) {
   const universal = `https://metamask.app.link/wc?uri=${encodedUri}&redirectUrl=${redirectUrl}`;
 
   if (isAndroidDevice()) {
-    return [androidIntent, native, universal];
+    return [androidIntent, universal, native];
   }
 
   if (isIosDevice()) {
-    return [native, universal];
+    return [universal, native];
   }
 
   return [universal];
@@ -167,13 +220,13 @@ export function getMobileWalletRedirectUrl(walletType = 'metamask') {
  * This helps auto-continue the connection flow
  */
 export function isReturningFromMobileWallet() {
-  if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') {
+  if (typeof window === 'undefined') {
     return false;
   }
-  const connectingWallet = sessionStorage.getItem('_wallet_connecting');
-  const connectTime = sessionStorage.getItem('_wallet_connect_time');
-  
-  if (!connectingWallet || !connectTime) return false;
+  const markers = getMobileWalletMarkers();
+  if (!markers) return false;
+  const connectTime = markers.time;
+  if (!connectTime) return false;
   
   // Check if it's been less than 2 minutes since we initiated connection
   const elapsed = Date.now() - parseInt(connectTime, 10);
@@ -184,9 +237,18 @@ export function isReturningFromMobileWallet() {
  * Clear mobile wallet session markers
  */
 export function clearMobileWalletMarkers() {
-  if (typeof sessionStorage !== 'undefined') {
+  if (typeof window === 'undefined') return;
+  try {
     sessionStorage.removeItem('_wallet_connecting');
     sessionStorage.removeItem('_wallet_connect_time');
+  } catch (err) {
+    console.info('Unable to clear session storage markers', err);
+  }
+  try {
+    localStorage.removeItem('_wallet_connecting');
+    localStorage.removeItem('_wallet_connect_time');
+  } catch (err) {
+    console.info('Unable to clear local storage markers', err);
   }
 }
 
@@ -269,11 +331,14 @@ export function hasEthereumProvider() {
 }
 
 export async function connectWallet({ walletType = 'metamask' } = {}) {
+  const rawWalletType = walletType;
+  walletType = normalizeWalletType(walletType);
+  const isMetaMaskSignOnly = typeof rawWalletType === 'string' && rawWalletType.toLowerCase().trim() === 'metamask-sign-only';
   const provider = getEthereumProvider();
   const isMobile = isMobileDevice();
 
   // SCENARIO 1: Provider sudah tersedia (Browser extension atau in-app browser di wallet mobile)
-  if (provider && provider?.request) {
+  if (provider && provider?.request && (!isMetaMaskSignOnly || isMetaMaskMobile())) {
     try {
       const accounts = await provider.request({ method: 'eth_requestAccounts' });
       if (!accounts || accounts.length === 0) {
@@ -297,7 +362,7 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
     }
   }
 
-  // SCENARIO 2: Tidak ada provider, coba deep link ke mobile wallet app
+  // SCENARIO 2: Tidak ada provider (atau sign-only mobile path), coba deep link ke mobile wallet app
   if (isMobile) {
     if (walletType === 'metamask') {
       try {
@@ -327,8 +392,7 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
         }
 
         if (typeof window !== 'undefined') {
-          sessionStorage.setItem('_wallet_connecting', walletType);
-          sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
+          setMobileWalletMarkers(rawWalletType || walletType);
         }
 
         console.log('📱 Opening MetaMask with WC URI (attempts):', deepLinks);
@@ -355,8 +419,7 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
     if (redirectUrl) {
       console.log('📱 Opening other wallet mobile app...');
       if (typeof window !== 'undefined') {
-        sessionStorage.setItem('_wallet_connecting', walletType);
-        sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
+        setMobileWalletMarkers(rawWalletType || walletType);
       }
       window.location.href = redirectUrl;
       return null;

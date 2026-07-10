@@ -101,24 +101,32 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
 
   // Handle returning from mobile wallet deep link
   useEffect(() => {
-    if (!isReturningFromMobileWallet()) return;
+    const retryWalletConnection = () => {
+      if (!isReturningFromMobileWallet()) return;
 
-    console.log('📱 Returning from mobile wallet app, retrying connection...');
-    const walletType = sessionStorage.getItem('_wallet_connecting') || 'metamask';
-    clearMobileWalletMarkers();
+      console.log('📱 Returning from mobile wallet app, retrying connection...');
+      const walletType = sessionStorage.getItem('_wallet_connecting') || 'metamask';
+      clearMobileWalletMarkers();
 
-    // Show connecting modal and retry
-    setIsConnectingModalOpen(true);
-    setConnectingStatus('connecting');
-    setConnectingMessage('Melanjutkan koneksi wallet...');
-    setSelectedWalletType(walletType);
+      setIsConnectingModalOpen(true);
+      setConnectingStatus('connecting');
+      setConnectingMessage('Melanjutkan koneksi wallet...');
+      setSelectedWalletType(walletType);
 
-    // Retry connection after a short delay to allow wallet to inject
-    const retryTimeout = setTimeout(() => {
-      handleWalletSelection(walletType);
-    }, 1000);
+      setTimeout(() => {
+        handleWalletSelection(walletType);
+      }, 1000);
+    };
 
-    return () => clearTimeout(retryTimeout);
+    retryWalletConnection();
+
+    window.addEventListener('focus', retryWalletConnection);
+    document.addEventListener('visibilitychange', retryWalletConnection);
+
+    return () => {
+      window.removeEventListener('focus', retryWalletConnection);
+      document.removeEventListener('visibilitychange', retryWalletConnection);
+    };
   }, []);
 
   // Close dropdowns when clicking outside
