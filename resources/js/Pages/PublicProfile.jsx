@@ -14,9 +14,94 @@ export default function PublicProfile({ navigateTo, targetUser, products = [], a
     );
   }, [targetUser]);
 
-  const currentUserId = auth?.user?.idUser || auth?.user?.id;
+  // Prefer passed `auth`, but fall back to `window.user` injected by Blade
+  const currentUserId = auth?.user?.idUser || auth?.user?.id || (typeof window !== 'undefined' && window.user ? (window.user.idUser || window.user.id) : null);
   const targetUserId = targetUser?.idUser || targetUser?.id;
   const isOwnProfile = Boolean(currentUserId && targetUserId && currentUserId === targetUserId);
+
+  // Followers state
+  const [followersCount, setFollowersCount] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  // Fetch followers count & check if current user is following
+  React.useEffect(() => {
+    if (!targetUserId) return;
+
+    const fetchFollowers = async () => {
+      try {
+        const res = await fetch(`/api/user/${targetUserId}/followers`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) {
+          // silently ignore if not authorized or not available
+          return;
+        }
+        const data = await res.json();
+        setFollowersCount((data && typeof data.count === 'number') ? data.count : 0);
+        if (data && Array.isArray(data.data) && currentUserId) {
+          const found = data.data.find(u => (u.idUser || u.id) === currentUserId);
+          setIsFollowing(Boolean(found));
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    fetchFollowers();
+  }, [targetUserId, currentUserId]);
+
+  const handleFollow = async () => {
+    if (!currentUserId) return navigateTo('login');
+    setFollowLoading(true);
+    try {
+      const res = await fetch(`/api/user/${targetUserId}/follow`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 
+          'Accept': 'application/json', 
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+        }
+      });
+      if (res.ok) {
+        setIsFollowing(true);
+        setFollowersCount(prev => prev + 1);
+      }
+      else {
+        console.warn('Follow failed', res.status, await res.text().catch(()=>''));
+      }
+    } catch (e) {
+      // ignore
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleUnfollow = async () => {
+    if (!currentUserId) return;
+    setFollowLoading(true);
+    try {
+      const res = await fetch(`/api/user/${targetUserId}/follow`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' }
+      });
+      if (res.ok) {
+        setIsFollowing(false);
+        setFollowersCount(prev => Math.max(0, prev - 1));
+      }
+      else {
+        console.warn('Unfollow failed', res.status, await res.text().catch(()=>''));
+      }
+    } catch (e) {
+      // ignore
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   const creatorProducts = useMemo(() => {
     if (!targetUser) return [];
@@ -88,26 +173,44 @@ export default function PublicProfile({ navigateTo, targetUser, products = [], a
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        onClick={() => navigateTo('login')}
-                        className="min-w-35 rounded-3xl border-2 border-neutral-950 bg-amber-400 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-neutral-950 transition hover:bg-amber-500"
-                      >
-                        🔐 Login
-                      </button>
-                      {currentUserId && !isOwnProfile ? (
-                        <button
-                          onClick={() => setIsChatOpen(true)}
-                          className="min-w-35 rounded-3xl border-2 border-neutral-950 bg-neutral-950 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-white transition hover:bg-neutral-800"
-                          title="Buka chat dengan owner"
-                        >
-                          💬 Chat
-                        </button>
-                      ) : currentUserId && isOwnProfile ? (
-                        <div className="min-w-35 rounded-3xl border-2 border-neutral-300 bg-neutral-200 px-4 py-2 text-center text-[11px] font-black uppercase tracking-widest text-neutral-600">
-                          👤 Profile Anda
-                        </div>
-                      ) : null}
+                    <div className="flex flex-wrap gap-3 items-center">
+                      {!currentUserId ? (
+                        <>
+                          <button
+                            onClick={() => navigateTo('login')}
+                            className="min-w-35 rounded-3xl border-2 border-neutral-950 bg-amber-400 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-neutral-950 transition hover:bg-amber-500"
+                          >
+                            🔐 Login
+                          </button>
+                          <div className="ml-2 text-sm font-semibold">{followersCount} follower{followersCount !== 1 ? 's' : ''}</div>
+                        </>
+                      ) : !isOwnProfile ? (
+                        <>
+                          <button
+                            onClick={isFollowing ? handleUnfollow : handleFollow}
+                            disabled={followLoading}
+                            className={`min-w-35 rounded-3xl border-2 px-4 py-2 text-[11px] font-black uppercase tracking-widest transition ${isFollowing ? 'border-neutral-300 bg-neutral-200 text-neutral-600' : 'border-2 border-neutral-950 bg-amber-400 text-neutral-950 hover:bg-amber-500'}`}
+                          >
+                            {isFollowing ? 'Following' : 'Follow'}{followLoading ? '…' : ''}
+                          </button>
+
+                          <button
+                            onClick={() => setIsChatOpen(true)}
+                            className="min-w-35 rounded-3xl border-2 border-neutral-950 bg-neutral-950 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-white transition hover:bg-neutral-800"
+                            title="Buka chat dengan owner"
+                          >
+                            💬 Chat
+                          </button>
+                          <div className="ml-2 text-sm font-semibold">{followersCount} follower{followersCount !== 1 ? 's' : ''}</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="min-w-35 rounded-3xl border-2 border-neutral-300 bg-neutral-200 px-4 py-2 text-center text-[11px] font-black uppercase tracking-widest text-neutral-600">
+                            👤 Profile Anda
+                          </div>
+                          <div className="ml-2 text-sm font-semibold">{followersCount} follower{followersCount !== 1 ? 's' : ''}</div>
+                        </>
+                      )}
                     </div>
                   </div>
 

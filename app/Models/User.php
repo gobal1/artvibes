@@ -57,4 +57,34 @@ class User extends Authenticatable
         }
         return $array;
     }
+
+    public function followers()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'followers',
+            'followed_id',
+            'follower_id'
+        );
+    }
+
+    public function following()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'followers',
+            'follower_id',
+            'followed_id'
+        );
+    }
+
+    public function pinnedProducts()
+    {
+        return $this->belongsToMany(
+            Produk::class,
+            'pins',
+            'user_idUser',
+            'produk_idproduk'
+        );
+    }
 }

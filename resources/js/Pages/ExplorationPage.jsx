@@ -14,6 +14,7 @@ import {
   Tag, 
   ShieldCheck,
   Heart,
+  Bookmark,
   Share2,
   Volume2,
   CalendarDays
@@ -32,9 +33,11 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
   
   const [selectedNft, setSelectedNft] = useState(null);
   const [likedProducts, setLikedProducts] = useState([]); // Store liked product IDs from database
+  const [pinnedProducts, setPinnedProducts] = useState([]); // Store pinned product IDs from database
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeImageSubCategory, setActiveImageSubCategory] = useState('row-image');
   const [loadingLikes, setLoadingLikes] = useState(false);
+  const [loadingPins, setLoadingPins] = useState(false);
   const [voiceSettingsOpen, setVoiceSettingsOpen] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [autoPlayVoice, setAutoPlayVoice] = useState(false);
@@ -69,8 +72,85 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
   useEffect(() => {
     if (isLoggedIn) {
       fetchLikedProducts();
+      fetchPinnedProducts();
     }
   }, [isLoggedIn]);
+
+  const fetchPinnedProducts = async () => {
+    if (!isLoggedIn) return;
+    try {
+      setLoadingPins(true);
+      const userId = auth.user?.idUser || auth.user?.id;
+      const response = await fetch(`/api/pins/user/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+        },
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        setPinnedProducts([]);
+        return;
+      }
+      const data = await response.json();
+      const pinnedIds = (Array.isArray(data) ? data : [])
+        .map((pin) => pin.produk_idproduk || pin.id_produk || pin.produk?.idproduk || pin.produk?.id)
+        .filter(Boolean);
+      setPinnedProducts(pinnedIds);
+    } catch (err) {
+      console.error('Error fetching pinned products:', err);
+      setPinnedProducts([]);
+    } finally {
+      setLoadingPins(false);
+    }
+  };
+
+  const togglePin = async (e, productId) => {
+    e.stopPropagation();
+    if (!isLoggedIn) {
+      alert('Silakan login terlebih dahulu untuk menyematkan produk');
+      return;
+    }
+
+    try {
+      const userId = auth.user?.idUser || auth.user?.id;
+      const isPinned = pinnedProducts.includes(productId);
+      if (isPinned) {
+        const response = await fetch(`/api/pins/${userId}/${productId}`, {
+          method: 'DELETE',
+          headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          },
+          credentials: 'include',
+        });
+        if (response.ok) {
+          setPinnedProducts((prev) => prev.filter((id) => id !== productId));
+        }
+      } else {
+        const response = await fetch('/api/pins', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            id_produk: productId,
+            user_idUser: userId,
+          }),
+        });
+        if (response.ok) {
+          setPinnedProducts((prev) => [...new Set([...prev, productId])]);
+        }
+      }
+    } catch (err) {
+      console.error('Error toggling pin:', err);
+      alert('Error menyimpan sematan ke database');
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -1008,7 +1088,15 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                               >
                                 <Heart className={`h-3.5 w-3.5 ${isLiked ? 'fill-current' : ''}`} />
                               </button>
-                              
+                              <button 
+                                onClick={(e) => togglePin(e, item.idproduk)}
+                                className={`p-1.5 border-2 transition cursor-pointer flex items-center justify-center h-7 w-7 shrink-0 ${
+                                  pinnedProducts.includes(item.idproduk) ? 'bg-emerald-50 text-emerald-700 border-emerald-700' : 'bg-white text-neutral-400 border-neutral-950 hover:text-neutral-900'
+                                }`}
+                                title={pinnedProducts.includes(item.idproduk) ? 'Batal sematkan' : 'Sematkan'}
+                              >
+                                <Bookmark className={`h-3.5 w-3.5 ${pinnedProducts.includes(item.idproduk) ? 'fill-current' : ''}`} />
+                              </button>
                             </div>
                           </div>
 

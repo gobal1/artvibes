@@ -4,8 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class Produk extends Model
 {
@@ -32,37 +30,6 @@ class Produk extends Model
         'status',
     ];
 
-    public function getImageUrlAttribute($value)
-    {
-        if (!$value) {
-            return $value;
-        }
-
-        if (Str::startsWith($value, ['http://', 'https://', '/storage/'])) {
-            $url = Str::startsWith($value, '/storage/') ? url($value) : $value;
-            return $this->normalizeUrl($url);
-        }
-
-        $url = Storage::disk('public')->url($value);
-        return $this->normalizeUrl($url);
-    }
-
-    protected function normalizeUrl(string $url): string
-    {
-        $parsed = parse_url($url);
-        if ($parsed === false || !isset($parsed['path'])) {
-            return $url;
-        }
-
-        $path = implode('/', array_map('rawurlencode', explode('/', ltrim($parsed['path'], '/'))));
-        $scheme = $parsed['scheme'] ?? 'https';
-        $host = $parsed['host'] ?? request()->getHost();
-        $port = isset($parsed['port']) ? ':' . $parsed['port'] : '';
-        $query = isset($parsed['query']) ? '?' . $parsed['query'] : '';
-
-        return "{$scheme}://{$host}{$port}/{$path}{$query}";
-    }
-
     /**
      * 🔥 RELASI UNTUK MENGAMBIL DATA PEMILIK KARYA
      * Menghubungkan kolom user_idUser di tabel produk ke kolom idUser di tabel user
@@ -88,5 +55,15 @@ class Produk extends Model
     public function nft()
     {
         return $this->hasOne(Nft::class, 'produk_idproduk', 'idproduk');
+    }
+
+    public function pinnedBy()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'pins',
+            'produk_idproduk',
+            'user_idUser'
+        );
     }
 }

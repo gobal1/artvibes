@@ -103,6 +103,7 @@ export default function ProfileDashboard({
   const [selectedConversationUser, setSelectedConversationUser] = useState(null);
   const [isChatSidebarOpen, setIsChatSidebarOpen] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
   const [likedProductsData, setLikedProductsData] = useState([]);
   const [loadingLikedProducts, setLoadingLikedProducts] = useState(false);
   const [financeAnalytics, setFinanceAnalytics] = useState(createEmptyFinanceAnalytics);
@@ -332,6 +333,40 @@ export default function ProfileDashboard({
     }, 5000);
 
     return () => clearInterval(interval);
+  }, [auth?.user?.idUser, auth?.user?.id]);
+
+  useEffect(() => {
+    const fetchFollowersCount = async () => {
+      const userId = auth?.user?.idUser || auth?.user?.id;
+      if (!userId) {
+        setFollowersCount(0);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/user/${userId}/followers`, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          setFollowersCount(0);
+          return;
+        }
+
+        const data = await response.json();
+        setFollowersCount(typeof data.count === 'number' ? data.count : 0);
+      } catch (err) {
+        console.error('Error fetching followers count:', err);
+        setFollowersCount(0);
+      }
+    };
+
+    fetchFollowersCount();
   }, [auth?.user?.idUser, auth?.user?.id]);
 
   useEffect(() => {
@@ -1339,7 +1374,7 @@ export default function ProfileDashboard({
           </div>
           <div className="rounded-xl border-2 border-neutral-950 bg-white px-3 py-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
             <p className="text-[10px] uppercase tracking-widest text-neutral-500 font-black">Status Studio</p>
-            <p className="text-sm font-black text-emerald-700 uppercase">Aktif</p>
+            <p className="text-sm font-black text-emerald-700 uppercase">{followersCount} FOLLOWER</p>
           </div>
         </div>
 
@@ -1555,57 +1590,136 @@ export default function ProfileDashboard({
 
         {/* TAB DISUKAI */}
         {activeSubTab === 'disukai' && (
-          loadingLikedProducts ? (
-            <div className="p-12 text-center border-4 border-dashed border-neutral-300 text-neutral-500 font-black text-xs uppercase tracking-widest bg-neutral-50 rounded-xl">
-              Memuat produk yang Anda sukai...
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 pb-3 mb-4">
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-wider text-neutral-900">Disukai Saya</h3>
+                <p className="text-[12px] text-neutral-600">Pilih antara produk favorit dan karya yang sudah disematkan.</p>
+              </div>
+              <div className="inline-flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFavoritesView('liked')}
+                  className={`px-4 py-2 border-2 font-black text-xs uppercase tracking-wider rounded-lg transition ${favoritesView === 'liked' ? 'bg-neutral-950 text-white border-neutral-950' : 'bg-white text-neutral-950 border-neutral-950 hover:bg-neutral-50'}`}
+                >
+                  Disukai ({likedProductsData.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFavoritesView('pinned')}
+                  className={`px-4 py-2 border-2 font-black text-xs uppercase tracking-wider rounded-lg transition ${favoritesView === 'pinned' ? 'bg-neutral-950 text-white border-neutral-950' : 'bg-white text-neutral-950 border-neutral-950 hover:bg-neutral-50'}`}
+                >
+                  Disematkan ({pinnedProductsData.length})
+                </button>
+              </div>
             </div>
-          ) : likedProductsData.length === 0 ? (
-            <div className="p-12 text-center border-4 border-dashed border-neutral-300 text-neutral-400 font-black text-xs uppercase tracking-widest bg-neutral-50 rounded-xl">
-              Belum ada produk disukai. Buka Explore lalu tekan ikon hati pada produk favorit Anda.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-1">
-              {likedProductsData.map((p, idx) => (
-                <div key={p.idproduk || p.id || idx} className="bg-white border-3 border-neutral-950 p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between rounded-xl hover:-translate-y-1 hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all">
-                  <div className="border-2 border-neutral-950 aspect-4/3 bg-neutral-100 overflow-hidden relative">
-                    <img
-                      src={
-                        p.image_url
-                          ? (p.image_url.startsWith('/storage/') || p.image_url.startsWith('http') ? p.image_url : `/storage/${p.image_url}`)
-                          : 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=400&q=80'
-                      }
-                      alt={p.title || 'Produk Disukai'}
-                      className="w-full h-full object-cover"
-                    />
-                    <span className="absolute bottom-2 right-2 border-2 border-neutral-950 bg-rose-200 px-2 py-0.5 text-[10px] font-black text-neutral-950 uppercase tracking-wider shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                      Disukai
-                    </span>
-                  </div>
-                  <div className="pt-2.5 space-y-1.5">
-                    <div className="flex justify-between items-start gap-1">
-                      <h3 className="font-black text-[13px] truncate uppercase tracking-tight w-3/4">{p.title || 'Karya Digital'}</h3>
-                      <span className="font-mono text-xs bg-neutral-950 text-amber-400 px-1.5 py-0.5 shrink-0 font-bold">{p.price_crypto || '0'} {marketCurrencySymbol}</span>
-                    </div>
-                    <p className="text-[11px] text-neutral-500 line-clamp-1 italic">"{p.deskripsi || 'No description available.'}"</p>
-                    <div className="border-t-2 border-dashed border-neutral-200 pt-2 flex justify-end gap-1">
-                      <button
-                        onClick={() => navigateTo('product-detail', p)}
-                        className="border border-neutral-950 px-2 py-1 text-[10px] font-black uppercase bg-neutral-50 hover:bg-neutral-200 cursor-pointer"
-                      >
-                        Detail
-                      </button>
-                      <button
-                        onClick={() => setActiveSubTab('koleksi')}
-                        className="border border-neutral-950 px-2 py-1 text-[10px] font-black uppercase bg-rose-100 hover:bg-rose-200 cursor-pointer"
-                      >
-                        Lihat Koleksi
-                      </button>
-                    </div>
-                  </div>
+
+            {favoritesView === 'liked' ? (
+              loadingLikedProducts ? (
+                <div className="p-12 text-center border-4 border-dashed border-neutral-300 text-neutral-500 font-black text-xs uppercase tracking-widest bg-neutral-50 rounded-xl">
+                  Memuat produk yang Anda sukai...
                 </div>
-              ))}
-            </div>
-          )
+              ) : likedProductsData.length === 0 ? (
+                <div className="p-12 text-center border-4 border-dashed border-neutral-300 text-neutral-400 font-black text-xs uppercase tracking-widest bg-neutral-50 rounded-xl">
+                  Belum ada produk disukai. Buka Explore lalu tekan ikon hati pada produk favorit Anda.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-1">
+                  {likedProductsData.map((p, idx) => (
+                    <div key={p.idproduk || p.id || idx} className="bg-white border-3 border-neutral-950 p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between rounded-xl hover:-translate-y-1 hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all">
+                      <div className="border-2 border-neutral-950 aspect-4/3 bg-neutral-100 overflow-hidden relative">
+                        <img
+                          src={
+                            p.image_url
+                              ? (p.image_url.startsWith('/storage/') || p.image_url.startsWith('http') ? p.image_url : `/storage/${p.image_url}`)
+                              : 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=400&q=80'
+                          }
+                          alt={p.title || 'Produk Disukai'}
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute bottom-2 right-2 border-2 border-neutral-950 bg-rose-200 px-2 py-0.5 text-[10px] font-black text-neutral-950 uppercase tracking-wider shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                          Disukai
+                        </span>
+                      </div>
+                      <div className="pt-2.5 space-y-1.5">
+                        <div className="flex justify-between items-start gap-1">
+                          <h3 className="font-black text-[13px] truncate uppercase tracking-tight w-3/4">{p.title || 'Karya Digital'}</h3>
+                          <span className="font-mono text-xs bg-neutral-950 text-amber-400 px-1.5 py-0.5 shrink-0 font-bold">{p.price_crypto || '0'} {marketCurrencySymbol}</span>
+                        </div>
+                        <p className="text-[11px] text-neutral-500 line-clamp-1 italic">"{p.deskripsi || 'No description available.'}"</p>
+                        <div className="border-t-2 border-dashed border-neutral-200 pt-2 flex justify-end gap-1">
+                          <button
+                            onClick={() => navigateTo('product-detail', p)}
+                            className="border border-neutral-950 px-2 py-1 text-[10px] font-black uppercase bg-neutral-50 hover:bg-neutral-200 cursor-pointer"
+                          >
+                            Detail
+                          </button>
+                          <button
+                            onClick={() => setFavoritesView('pinned')}
+                            className="border border-neutral-950 px-2 py-1 text-[10px] font-black uppercase bg-emerald-100 hover:bg-emerald-200 cursor-pointer"
+                          >
+                            Lihat Disematkan
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : (
+              loadingPinnedProducts ? (
+                <div className="p-12 text-center border-4 border-dashed border-neutral-300 text-neutral-500 font-black text-xs uppercase tracking-widest bg-neutral-50 rounded-xl">
+                  Memuat produk yang disematkan...
+                </div>
+              ) : pinnedProductsData.length === 0 ? (
+                <div className="p-12 text-center border-4 border-dashed border-neutral-300 text-neutral-400 font-black text-xs uppercase tracking-widest bg-neutral-50 rounded-xl">
+                  Belum ada produk yang disematkan. Gunakan tombol sematkan di Explore untuk menambahkan.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-1">
+                  {pinnedProductsData.map((p, idx) => (
+                    <div key={p.idproduk || p.id || idx} className="bg-white border-3 border-neutral-950 p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between rounded-xl hover:-translate-y-1 hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all">
+                      <div className="border-2 border-neutral-950 aspect-4/3 bg-neutral-100 overflow-hidden relative">
+                        <img
+                          src={
+                            p.image_url
+                              ? (p.image_url.startsWith('/storage/') || p.image_url.startsWith('http') ? p.image_url : `/storage/${p.image_url}`)
+                              : 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=400&q=80'
+                          }
+                          alt={p.title || 'Produk Disematkan'}
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute bottom-2 right-2 border-2 border-neutral-950 bg-emerald-200 px-2 py-0.5 text-[10px] font-black text-neutral-950 uppercase tracking-wider shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                          Disematkan
+                        </span>
+                      </div>
+                      <div className="pt-2.5 space-y-1.5">
+                        <div className="flex justify-between items-start gap-1">
+                          <h3 className="font-black text-[13px] truncate uppercase tracking-tight w-3/4">{p.title || 'Karya Digital'}</h3>
+                          <span className="font-mono text-xs bg-neutral-950 text-amber-400 px-1.5 py-0.5 shrink-0 font-bold">{p.price_crypto || '0'} {marketCurrencySymbol}</span>
+                        </div>
+                        <p className="text-[11px] text-neutral-500 line-clamp-1 italic">"{p.deskripsi || 'No description available.'}"</p>
+                        <div className="border-t-2 border-dashed border-neutral-200 pt-2 flex justify-end gap-1">
+                          <button
+                            onClick={() => navigateTo('product-detail', p)}
+                            className="border border-neutral-950 px-2 py-1 text-[10px] font-black uppercase bg-neutral-50 hover:bg-neutral-200 cursor-pointer"
+                          >
+                            Detail
+                          </button>
+                          <button
+                            onClick={() => setFavoritesView('liked')}
+                            className="border border-neutral-950 px-2 py-1 text-[10px] font-black uppercase bg-neutral-50 hover:bg-neutral-200 cursor-pointer"
+                          >
+                            Lihat Disukai
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+          </>
         )}
 
         {/* TAB DATA PENDAPATAN */}

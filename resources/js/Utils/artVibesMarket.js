@@ -12,7 +12,7 @@ const CHAIN_METADATA = {
 };
 
 const MOBILE_WALLET_DEEP_LINKS = {
-  metamask: (dappUrl) => `https://metamask.app.link/dapp/${encodeURIComponent(dappUrl)}`,
+  metamask: (dappUrl) => `https://metamask.app.link/dapp/${dappUrl}`,
   'coinbase-wallet': (dappUrl) => `https://go.cb-w.com/dapp?uri=${encodeURIComponent(dappUrl)}`,
   trust: (dappUrl) => `https://link.trustwallet.com/open_url?uri=${encodeURIComponent(dappUrl)}`,
 };
@@ -34,11 +34,13 @@ function buildCurrentDappUrl() {
   
   // Jika localhost/127.0.0.1, replace dengan domain dari .env atau ngrok/public URL
   if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    // Try to get public URL dari environment atau use ngrok
     const publicUrl = import.meta.env.VITE_APP_URL || import.meta.env.VITE_PUBLIC_URL;
     if (publicUrl) {
       return publicUrl + window.location.pathname + window.location.search;
     }
-    return null;
+    // Fallback: gunakan current pathname tapi bisa di-override di mobile
+    // Untuk mobile testing, Anda perlu setup ngrok atau use public domain
   }
   
   return window.location.href;
@@ -47,9 +49,7 @@ function buildCurrentDappUrl() {
 export function getMobileWalletRedirectUrl(walletType = 'metamask') {
   const builder = MOBILE_WALLET_DEEP_LINKS[walletType?.toLowerCase().replace(/\s+/g, '-')] || null;
   if (!builder) return null;
-  const dappUrl = buildCurrentDappUrl();
-  if (!dappUrl) return null;
-  return builder(dappUrl);
+  return builder(buildCurrentDappUrl());
 }
 
 /**
@@ -190,21 +190,16 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
   // SCENARIO 2: Tidak ada provider, coba deep link ke mobile wallet app
   if (isMobile) {
     const redirectUrl = getMobileWalletRedirectUrl(walletType);
-    if (!redirectUrl) {
-      throw new Error(
-        'Tidak dapat membuka wallet mobile dari localhost. ' +
-        'Gunakan public URL/ngrok atau set VITE_PUBLIC_URL/VITE_APP_URL di lingkungan Anda agar MetaMask dapat memuat DApp.'
-      );
+    if (redirectUrl) {
+      console.log('📱 Opening MetaMask/Wallet mobile app...');
+      // Store state untuk tracking setelah return dari deep link
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('_wallet_connecting', walletType);
+        sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
+      }
+      window.location.href = redirectUrl;
+      return null;
     }
-
-    console.log('📱 Opening MetaMask/Wallet mobile app...');
-    // Store state untuk tracking setelah return dari deep link
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('_wallet_connecting', walletType);
-      sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
-    }
-    window.location.href = redirectUrl;
-    return null;
   }
 
   // SCENARIO 3: Provider tidak ada dan bukan mobile

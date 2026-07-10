@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\NftController;
 use App\Http\Controllers\Api\PriceController;
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\API\LikeController;
+use App\Http\Controllers\API\PinController;
 use App\Models\Kategori;
 use App\Http\Controllers\TransaksiController;
 
@@ -205,4 +206,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // NFT Link to Product
     Route::post('/nfts/link', [NftController::class, 'linkToProduct']);
+
+    // Follow / Unfollow
+    Route::post('/user/{userId}/follow', [\App\Http\Controllers\FollowController::class, 'follow']);
+    Route::delete('/user/{userId}/follow', [\App\Http\Controllers\FollowController::class, 'unfollow']);
+
+    // Pin / Sematkan Produk
+    Route::post('/pins', [PinController::class, 'pinProduct']);
+    Route::delete('/pins/{userId}/{produkId}', [PinController::class, 'unpinProduct']);
+    Route::get('/pins/user/{userId}', [PinController::class, 'getUserPins']);
 });
+
+// Public read-only endpoints for followers/following (visible tanpa login)
+Route::get('/user/{userId}/followers', [\App\Http\Controllers\FollowController::class, 'followers']);
+Route::get('/user/{userId}/following', [\App\Http\Controllers\FollowController::class, 'following']);
