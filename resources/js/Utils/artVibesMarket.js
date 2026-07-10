@@ -160,11 +160,11 @@ function buildMetaMaskWalletConnectLink(uri) {
   const androidIntent = `intent://wc?uri=${encodedUri}&redirectUrl=${redirectUrl}#Intent;package=io.metamask;scheme=metamask;S.browser_fallback_url=${browserFallback};end`;
 
   if (isAndroidDevice()) {
-    return [androidIntent, universal, native];
+    return [androidIntent, native, universal];
   }
 
   if (isIosDevice()) {
-    return [universal, native];
+    return [native, universal];
   }
 
   return [universal];
@@ -428,7 +428,7 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
  * This creates a WalletConnect provider, listens for the display_uri event,
  * then opens MetaMask via the universal wc link including redirect back to the dApp.
  */
-export async function openMetaMaskSignOnly() {
+export async function openMetaMaskSignOnly(popupWindow = null) {
   if (typeof window === 'undefined') {
     throw new Error('Function must be called in a browser environment');
   }
@@ -438,7 +438,7 @@ export async function openMetaMaskSignOnly() {
   }
 
   try {
-    const walletWindow = typeof window !== 'undefined' ? window.open('about:blank', '_blank') : null;
+    const walletWindow = popupWindow || (typeof window !== 'undefined' ? window.open('about:blank', '_blank') : null);
     const wcModule = await import('@walletconnect/web3-provider');
     const WalletConnectProvider = wcModule?.default || wcModule;
 
