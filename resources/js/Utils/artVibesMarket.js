@@ -362,7 +362,9 @@ export async function openMetaMaskSignOnly() {
 
         for (const link of deepLinks) {
           try {
-              openDeepLink(link);
+            openDeepLink(link);
+            break;
+          } catch (navErr) {
             console.info('Navigation attempt failed for link', link, navErr);
           }
         }
