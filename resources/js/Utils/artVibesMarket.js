@@ -178,12 +178,8 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
       if (isMobile) {
         const redirectUrl = getMobileWalletRedirectUrl(walletType);
         if (redirectUrl) {
-          console.log('📱 Mobile wallet deep-link available:', walletType, redirectUrl);
-          // Don't force-navigation here. Let the UI prompt the user with the link
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('_wallet_connecting', walletType);
-            sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
-          }
+          console.log('📱 Redirecting ke wallet mobile app:', walletType);
+          window.location.href = redirectUrl;
           return null;
         }
       }
@@ -193,16 +189,52 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
 
   // SCENARIO 2: Tidak ada provider, coba deep link ke mobile wallet app
   if (isMobile) {
-    const redirectUrl = getMobileWalletRedirectUrl(walletType);
-    if (redirectUrl) {
-      console.log('📱 Mobile wallet deep-link available (not auto-opening):', redirectUrl);
-      // Store state untuk tracking after initiating connection
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('_wallet_connecting', walletType);
-        sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
+    // Try WalletConnect Web3 provider first (provides a WC URI we can deep-link to MetaMask mobile)
+    try {
+      const wcModule = await import('@walletconnect/web3-provider');
+      const WalletConnectProvider = wcModule?.default || wcModule;
+
+      const rpc = {};
+      const chainId = getConfiguredChainId();
+      rpc[chainId] = getConfiguredChainMetadata().rpcUrl;
+
+      const wcProvider = new WalletConnectProvider({ rpc, qrcode: false });
+
+      // When the provider emits a display URI (WalletConnect URI), open MetaMask app via universal link
+      wcProvider.on('display_uri', (uri) => {
+        try {
+          const deepLink = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
+          sessionStorage.setItem('_wallet_connecting', walletType);
+          sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
+          console.log('📱 Opening MetaMask with WC URI...');
+          // Open in new tab/window so the dApp stays alive in background when possible
+          window.open(deepLink, '_blank');
+        } catch (e) {
+          console.warn('Gagal membuka deep link, fallback ke navigation', e);
+          window.location.href = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
+        }
+      });
+
+      // Request enable -> will trigger display_uri event and resolve once connected
+      const accounts = await wcProvider.enable();
+      if (accounts && accounts.length) {
+        // Expose provider as window.ethereum so existing code paths continue to work
+        window.ethereum = wcProvider;
+        return accounts[0];
       }
-      // Do not redirect automatically; let the caller/UI decide how to surface the link
-      return null;
+    } catch (wcError) {
+      // If WalletConnect provider not installed or fails, fallback to simple deep link to open dapp in MetaMask
+      console.warn('WalletConnect fallback failed or not installed:', wcError);
+      const redirectUrl = getMobileWalletRedirectUrl(walletType);
+      if (redirectUrl) {
+        console.log('📱 Opening MetaMask/Wallet mobile app (deep link fallback)...');
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('_wallet_connecting', walletType);
+          sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
+        }
+        window.location.href = redirectUrl;
+        return null;
+      }
     }
   }
 
