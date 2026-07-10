@@ -275,6 +275,57 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
   );
 }
 
+/**
+ * Open MetaMask mobile app with a WalletConnect URI for sign-only flow.
+ * This creates a WalletConnect provider, listens for the display_uri event,
+ * then opens MetaMask via the universal wc link including redirect back to the dApp.
+ */
+export async function openMetaMaskSignOnly() {
+  if (typeof window === 'undefined') {
+    throw new Error('Function must be called in a browser environment');
+  }
+
+  if (!isMobileDevice()) {
+    throw new Error('Open MetaMask (sign only) hanya didukung di perangkat mobile');
+  }
+
+  try {
+    const wcModule = await import('@walletconnect/web3-provider');
+    const WalletConnectProvider = wcModule?.default || wcModule;
+
+    const rpc = {};
+    const chainId = getConfiguredChainId();
+    rpc[chainId] = getConfiguredChainMetadata().rpcUrl;
+
+    const wcProvider = new WalletConnectProvider({ rpc, qrcode: false });
+
+    wcProvider.on('display_uri', (uri) => {
+      try {
+        const deepLink = buildMetaMaskWalletConnectLink(uri);
+        if (!deepLink) throw new Error('WC URI tidak valid');
+        // Save markers so the page knows we're returning from wallet
+        sessionStorage.setItem('_wallet_connecting', 'metamask');
+        sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
+        // Keep provider around for later use
+        window.wcProvider = wcProvider;
+        // Use location.href so browser tab is backgrounded and MetaMask takes over
+        window.location.href = deepLink;
+      } catch (e) {
+        console.warn('Gagal membangun deep link MetaMask:', e);
+        window.location.href = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
+      }
+    });
+
+    // Trigger session creation which should emit display_uri
+    await wcProvider.enable();
+
+    return true;
+  } catch (err) {
+    console.warn('openMetaMaskSignOnly error:', err);
+    throw err;
+  }
+}
+
 export async function ensureCorrectNetwork(expectedChainId = getConfiguredChainId()) {
   const provider = getEthereumProvider();
   if (!provider) {

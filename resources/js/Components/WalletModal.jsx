@@ -1,4 +1,5 @@
 import React from 'react';
+import { openMetaMaskSignOnly } from '../Utils/artVibesMarket';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
@@ -111,6 +112,24 @@ export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
+                  {wallet.key === 'metamask' && (
+                    <div className="absolute right-3 bottom-3">
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            await openMetaMaskSignOnly();
+                          } catch (err) {
+                            // eslint-disable-next-line no-alert
+                            alert('Gagal membuka MetaMask: ' + (err?.message || err));
+                          }
+                        }}
+                        className="text-[11px] px-2 py-1 rounded-md bg-emerald-600 text-white hover:brightness-110"
+                      >
+                        Open MetaMask (sign only)
+                      </button>
+                    </div>
+                  )}
                 </motion.button>
               ))}
             </div>
