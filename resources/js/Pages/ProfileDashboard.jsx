@@ -509,6 +509,10 @@ export default function ProfileDashboard({
   const getPreferredWalletAddress = useCallback(() => {
     if (globalAddress) return globalAddress.toLowerCase();
     if (auth?.user?.wallet_address) return auth.user.wallet_address.toLowerCase();
+    if (typeof window !== 'undefined') {
+      const storedWallet = window.localStorage.getItem('artvibesWalletAddress');
+      if (storedWallet) return storedWallet.toLowerCase();
+    }
     const provider = getEthereumProvider();
     if (provider?.selectedAddress) return provider.selectedAddress.toLowerCase();
     return null;
@@ -621,6 +625,13 @@ export default function ProfileDashboard({
         }
       }
 
+      if (!wallet && typeof window !== 'undefined') {
+        const storedWallet = window.localStorage.getItem('artvibesWalletAddress');
+        if (storedWallet) {
+          wallet = storedWallet.toLowerCase();
+        }
+      }
+
       fetchWalletBalance(wallet);
     };
 
@@ -636,8 +647,13 @@ export default function ProfileDashboard({
         const wallet = accounts[0].toLowerCase();
         fetchWalletBalance(wallet);
       } else {
-        setWalletUsdBalance(null);
-        setWalletNativeBalance(null);
+        const storedWallet = typeof window !== 'undefined' ? window.localStorage.getItem('artvibesWalletAddress') : null;
+        if (storedWallet) {
+          fetchWalletBalance(storedWallet.toLowerCase());
+        } else {
+          setWalletUsdBalance(null);
+          setWalletNativeBalance(null);
+        }
       }
     };
 

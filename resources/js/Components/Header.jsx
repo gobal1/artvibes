@@ -6,6 +6,8 @@ import WalletModal from './WalletModal';
 import WalletConnectingModal from './WalletConnectingModal';
 import { connectWallet as connectWalletUtil, getEthereumProvider } from '../Utils/artVibesMarket';
 
+const WALLET_STORAGE_KEY = 'artvibesWalletAddress';
+
 const GoogleLogo = ({ className }) => (
   <svg viewBox="0 0 533.5 544.3" className={className} aria-hidden="true">
     <path fill="#4285F4" d="M533.5 278.4c0-18.1-1.5-36.4-4.6-53.9H272.1v102h146.3c-6.3 34-25.3 62.8-54.1 82.1v68.3h87.5c51.1-47 80.7-116.3 80.7-198.5z"/>
@@ -60,9 +62,11 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
         const walletAddress = accounts[0].toLowerCase();
         setUserAddress(walletAddress);
         if (typeof setGlobalAddress === 'function') setGlobalAddress(walletAddress);
+        if (typeof window !== 'undefined') window.localStorage.setItem(WALLET_STORAGE_KEY, walletAddress);
       } else {
         setUserAddress('');
         if (typeof setGlobalAddress === 'function') setGlobalAddress('');
+        if (typeof window !== 'undefined') window.localStorage.removeItem(WALLET_STORAGE_KEY);
       }
     };
 
@@ -79,6 +83,15 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
         handleAccountsChanged(accounts);
       } catch (error) {
         console.warn('Wallet account init warning:', error);
+        if (typeof window !== 'undefined') {
+          const storedWallet = window.localStorage.getItem(WALLET_STORAGE_KEY);
+          if (storedWallet) {
+            setUserAddress(storedWallet.toLowerCase());
+            if (typeof setGlobalAddress === 'function') {
+              setGlobalAddress(storedWallet.toLowerCase());
+            }
+          }
+        }
       }
     };
 
@@ -93,6 +106,9 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
       if (typeof provider.removeListener === 'function') {
         provider.removeListener('accountsChanged', handleAccountsChanged);
         provider.removeListener('chainChanged', handleChainChanged);
+      }
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(WALLET_STORAGE_KEY);
       }
     };
   }, [setGlobalAddress, userAddress, globalAddress]);
@@ -238,6 +254,9 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
       setConnectingStatus('success');
       setConnectingMessage('Wallet berhasil terhubung!');
       setUserAddress(walletAddress);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(WALLET_STORAGE_KEY, walletAddress.toLowerCase());
+      }
       
       if (typeof setGlobalAddress === 'function') {
         setGlobalAddress(walletAddress);
