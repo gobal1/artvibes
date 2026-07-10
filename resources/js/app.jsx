@@ -65,6 +65,9 @@ function App() {
         console.log('🔄 Checking /api/me...');
         const response = await fetch('/api/me', {
           credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+          },
         });
         if (response.ok) {
           const data = await response.json();

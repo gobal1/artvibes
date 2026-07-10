@@ -2,9 +2,10 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { ethers } from 'ethers';
 import { Mail, Lock, ArrowRight, X, ShieldCheck, Plus, MessageSquare, Trash2, Edit3, DollarSign, Bell, Heart, ChevronDown, Music2, Video } from 'lucide-react';
 import ChatSidebar from '../Components/ChatSidebar';
+import { getEthereumProvider } from '../Utils/artVibesMarket';
 import DashboardActivityPage from './DashboardActivityPage';
 import { uploadAssetToIpfs, uploadMetadataToIpfs, linkNftToProduct } from '../Utils/ipfsApi';
-import { getConfiguredChainId, getEthereumProvider, requireWalletAccess, mintNftOnChain, listTokenOnChain, updateListingPriceOnChain, cancelListingOnChain, getNativeCurrencySymbol } from '../Utils/artVibesMarket';
+import { getConfiguredChainId, mintNftOnChain, listTokenOnChain, updateListingPriceOnChain, cancelListingOnChain, getNativeCurrencySymbol } from '../Utils/artVibesMarket';
 
 const createEmptyFinanceAnalytics = () => ({
   months: Array.from({ length: 12 }, (_, index) => ({ label: `Tx ${index + 1}`, value: 0 })),
@@ -510,20 +511,19 @@ export default function ProfileDashboard({
     if (auth?.user?.wallet_address) return auth.user.wallet_address.toLowerCase();
     const provider = getEthereumProvider();
     if (provider?.selectedAddress) return provider.selectedAddress.toLowerCase();
-    if (typeof window !== 'undefined' && window.ethereum?.selectedAddress) return window.ethereum.selectedAddress.toLowerCase();
     return null;
   }, [globalAddress, auth?.user?.wallet_address]);
 
   const fetchWalletBalance = useCallback(async (walletAddress) => {
     try {
-      const provider = getEthereumProvider();
-      if (!walletAddress || !provider) {
+      const providerSource = getEthereumProvider();
+      if (!walletAddress || !providerSource || typeof providerSource.request !== 'function') {
         setWalletUsdBalance(null);
         setWalletNativeBalance(null);
         return;
       }
 
-      const chainHex = await provider.request({ method: 'eth_chainId' });
+      const chainHex = await providerSource.request({ method: 'eth_chainId' });
       const chainId = parseInt(chainHex, 16);
       if (chainId && chainId !== selectedChain) {
         setSelectedChain(chainId);
@@ -533,12 +533,12 @@ export default function ProfileDashboard({
 
       let balanceEth = 0;
       try {
-        const ethersProvider = new ethers.BrowserProvider(provider);
-        const balanceWei = await ethersProvider.getBalance(walletAddress);
+        const provider = new ethers.BrowserProvider(providerSource);
+        const balanceWei = await provider.getBalance(walletAddress);
         balanceEth = Number(ethers.formatEther(balanceWei));
       } catch (providerError) {
         console.warn('BrowserProvider balance failed, fallback to eth_getBalance', providerError);
-        const balanceWeiHex = await provider.request({
+        const balanceWeiHex = await providerSource.request({
           method: 'eth_getBalance',
           params: [walletAddress, 'latest'],
         });
@@ -560,12 +560,12 @@ export default function ProfileDashboard({
 
       if (tokenConfig?.address) {
         try {
-          const erc20Provider = new ethers.BrowserProvider(getEthereumProvider());
+          const tokenProvider = new ethers.BrowserProvider(providerSource);
           const erc20Abi = [
             'function balanceOf(address owner) view returns (uint256)',
             'function decimals() view returns (uint8)',
           ];
-          const tokenContract = new ethers.Contract(tokenConfig.address, erc20Abi, erc20Provider);
+          const tokenContract = new ethers.Contract(tokenConfig.address, erc20Abi, tokenProvider);
           const tokenBalanceRaw = await tokenContract.balanceOf(walletAddress);
           const tokenDecimals = await tokenContract.decimals();
           const tokenBalance = Number(ethers.formatUnits(tokenBalanceRaw, tokenDecimals));
@@ -593,7 +593,7 @@ export default function ProfileDashboard({
       let wallet = getPreferredWalletAddress();
       const provider = getEthereumProvider();
 
-      if (!wallet && provider) {
+      if (!wallet && provider && typeof provider.request === 'function') {
         try {
           const accounts = await provider.request({ method: 'eth_accounts' });
           if (Array.isArray(accounts) && accounts.length > 0) {
@@ -612,7 +612,7 @@ export default function ProfileDashboard({
 
   useEffect(() => {
     const provider = getEthereumProvider();
-    if (!provider || typeof provider.on !== 'function') return;
+    if (!provider || typeof provider.request !== 'function') return;
 
     const handleAccountsChanged = (accounts) => {
       if (Array.isArray(accounts) && accounts.length > 0) {
@@ -629,19 +629,23 @@ export default function ProfileDashboard({
       if (wallet) fetchWalletBalance(wallet);
     };
 
-    provider.on('accountsChanged', handleAccountsChanged);
-    provider.on('chainChanged', handleChainChanged);
+    if (typeof provider.on === 'function') {
+      provider.on('accountsChanged', handleAccountsChanged);
+      provider.on('chainChanged', handleChainChanged);
+    }
 
     return () => {
-      provider.removeListener('accountsChanged', handleAccountsChanged);
-      provider.removeListener('chainChanged', handleChainChanged);
+      if (typeof provider.removeListener === 'function') {
+        provider.removeListener('accountsChanged', handleAccountsChanged);
+        provider.removeListener('chainChanged', handleChainChanged);
+      }
     };
   }, [fetchWalletBalance, getPreferredWalletAddress]);
 
   useEffect(() => {
-    const provider = getEthereumProvider();
     const wallet = getPreferredWalletAddress();
-    if (!wallet || !provider) return;
+    const provider = getEthereumProvider();
+    if (!wallet || !provider || typeof provider.request !== 'function') return;
 
     const interval = setInterval(() => {
       fetchWalletBalance(wallet);
@@ -737,7 +741,6 @@ export default function ProfileDashboard({
 
       const response = await fetch(url, {
         method: 'POST', // WAJIB POST jika bawa file (FormData)
-        credentials: 'include',
         headers: requestHeaders, // JANGAN set Content-Type secara manual, biar browser yang atur boundary-nya!
         body: formData,
       });
@@ -757,13 +760,34 @@ export default function ProfileDashboard({
         if (!isUpdate && selectedImage && savedProduct?.idproduk) {
           try {
             setNotifications([
-              { id: Date.now(), text: 'Menyiapkan wallet untuk transaksi mint...', type: 'info', read: false },
+              { id: Date.now(), text: 'Mengunggah file ke IPFS...', type: 'info', read: false },
               ...notifications,
             ]);
 
+            // Switch ke chain yang dipilih user sebelum mint
             const chosenChain = CHAIN_OPTIONS.find(c => c.id === selectedChain);
-            if (chosenChain) {
-              await requireWalletAccess(chosenChain.id);
+            if (chosenChain && typeof window.ethereum !== 'undefined') {
+              try {
+                await window.ethereum.request({
+                  method: 'wallet_switchEthereumChain',
+                  params: [{ chainId: chosenChain.hexId }],
+                });
+              } catch (switchErr) {
+                if (switchErr?.code === 4902 && chosenChain.rpc) {
+                  await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                      chainId: chosenChain.hexId,
+                      chainName: chosenChain.name,
+                      nativeCurrency: { name: chosenChain.symbol, symbol: chosenChain.symbol, decimals: 18 },
+                      rpcUrls: [chosenChain.rpc],
+                      blockExplorerUrls: [chosenChain.explorer],
+                    }],
+                  });
+                } else {
+                  throw new Error(`Gagal switch ke ${chosenChain.name}: ${switchErr?.message}`);
+                }
+              }
             }
 
             const assetUpload = await uploadAssetToIpfs(selectedImage, newTitle);

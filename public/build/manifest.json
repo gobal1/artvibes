@@ -1,55 +1,55 @@
 {
-  "_AlertController-dR39IiHk.js": {
-    "file": "assets/AlertController-dR39IiHk.js",
+  "_AlertController-B9LPHvwZ.js": {
+    "file": "assets/AlertController-B9LPHvwZ.js",
     "name": "AlertController",
     "imports": [
       "_chunk-C2Cleczu.js",
-      "_ApiController-BJDggAgb.js",
+      "_ApiController-BVFeD0ja.js",
       "_index.es-CCTRNKq2.js"
     ]
   },
-  "_ApiController-BJDggAgb.js": {
-    "file": "assets/ApiController-BJDggAgb.js",
+  "_ApiController-BVFeD0ja.js": {
+    "file": "assets/ApiController-BVFeD0ja.js",
     "name": "ApiController",
     "imports": [
       "resources/js/app.jsx",
-      "_ccip-DMToySye.js"
+      "_ccip-DySeKO8n.js"
     ],
     "dynamicImports": [
-      "__esm--n6jl0r8.js"
+      "__esm-DcHwIh_f.js"
     ]
   },
-  "_CaipNetworkUtil-Bn_ql2Sy.js": {
-    "file": "assets/CaipNetworkUtil-Bn_ql2Sy.js",
+  "_CaipNetworkUtil-B6eWK4FI.js": {
+    "file": "assets/CaipNetworkUtil-B6eWK4FI.js",
     "name": "CaipNetworkUtil",
     "imports": [
-      "_HelpersUtil-hUgZfnpC.js",
-      "_ApiController-BJDggAgb.js",
-      "__esm--n6jl0r8.js"
+      "_HelpersUtil-geYaEJZ1.js",
+      "_ApiController-BVFeD0ja.js",
+      "__esm-DcHwIh_f.js"
     ]
   },
-  "_HelpersUtil-hUgZfnpC.js": {
-    "file": "assets/HelpersUtil-hUgZfnpC.js",
+  "_HelpersUtil-geYaEJZ1.js": {
+    "file": "assets/HelpersUtil-geYaEJZ1.js",
     "name": "HelpersUtil",
     "imports": [
-      "_ApiController-BJDggAgb.js"
+      "_ApiController-BVFeD0ja.js"
     ]
   },
-  "__esm--n6jl0r8.js": {
-    "file": "assets/_esm--n6jl0r8.js",
+  "__esm-DcHwIh_f.js": {
+    "file": "assets/_esm-DcHwIh_f.js",
     "name": "_esm",
     "imports": [
       "_chunk-C2Cleczu.js",
       "resources/js/app.jsx",
-      "_ccip-DMToySye.js",
+      "_ccip-DySeKO8n.js",
       "_secp256k1-apsmWse-.js"
     ],
     "dynamicImports": [
       "_secp256k1-apsmWse-.js"
     ]
   },
-  "_ccip-DMToySye.js": {
-    "file": "assets/ccip-DMToySye.js",
+  "_ccip-DySeKO8n.js": {
+    "file": "assets/ccip-DySeKO8n.js",
     "name": "ccip",
     "imports": [
       "_chunk-C2Cleczu.js",
@@ -57,7 +57,7 @@
       "_utils-D-ZkLkKk.js"
     ],
     "dynamicImports": [
-      "_ccip-DMToySye.js"
+      "_ccip-DySeKO8n.js"
     ]
   },
   "_chunk-C2Cleczu.js": {
@@ -87,12 +87,12 @@
     "file": "assets/utils-D-ZkLkKk.js",
     "name": "utils"
   },
-  "_wui-list-item-DW31oiQo.js": {
-    "file": "assets/wui-list-item-DW31oiQo.js",
+  "_wui-list-item-DeQvi6d0.js": {
+    "file": "assets/wui-list-item-DeQvi6d0.js",
     "name": "wui-list-item",
     "imports": [
       "resources/js/app.jsx",
-      "_HelpersUtil-hUgZfnpC.js"
+      "_HelpersUtil-geYaEJZ1.js"
     ],
     "dynamicImports": [
       "node_modules/@phosphor-icons/webcomponents/dist/icons/PhArrowCircleDown.mjs",
@@ -618,53 +618,53 @@
     ]
   },
   "node_modules/@reown/appkit-controllers/dist/esm/exports/features.js": {
-    "file": "assets/features-BGQLbbJW.js",
+    "file": "assets/features-Dbc6EDgW.js",
     "name": "features",
     "src": "node_modules/@reown/appkit-controllers/dist/esm/exports/features.js",
     "isDynamicEntry": true,
     "imports": [
-      "_ApiController-BJDggAgb.js"
+      "_ApiController-BVFeD0ja.js"
     ]
   },
   "node_modules/@reown/appkit-scaffold-ui/dist/esm/exports/basic.js": {
-    "file": "assets/basic-DYzjG2oC.js",
+    "file": "assets/basic-vPdXXtN1.js",
     "name": "basic",
     "src": "node_modules/@reown/appkit-scaffold-ui/dist/esm/exports/basic.js",
     "isDynamicEntry": true,
     "imports": [
       "_chunk-C2Cleczu.js",
-      "_HelpersUtil-hUgZfnpC.js",
-      "_wui-list-item-DW31oiQo.js",
-      "_ApiController-BJDggAgb.js",
-      "_CaipNetworkUtil-Bn_ql2Sy.js"
+      "_HelpersUtil-geYaEJZ1.js",
+      "_wui-list-item-DeQvi6d0.js",
+      "_ApiController-BVFeD0ja.js",
+      "_CaipNetworkUtil-B6eWK4FI.js"
     ]
   },
   "node_modules/@reown/appkit-scaffold-ui/dist/esm/exports/w3m-modal.js": {
-    "file": "assets/w3m-modal-BbMaFXAl.js",
+    "file": "assets/w3m-modal-DDSbwrl8.js",
     "name": "w3m-modal",
     "src": "node_modules/@reown/appkit-scaffold-ui/dist/esm/exports/w3m-modal.js",
     "isDynamicEntry": true,
     "imports": [
-      "_HelpersUtil-hUgZfnpC.js",
-      "_wui-list-item-DW31oiQo.js",
-      "_ApiController-BJDggAgb.js",
-      "_AlertController-dR39IiHk.js"
+      "_HelpersUtil-geYaEJZ1.js",
+      "_wui-list-item-DeQvi6d0.js",
+      "_ApiController-BVFeD0ja.js",
+      "_AlertController-B9LPHvwZ.js"
     ]
   },
   "node_modules/@reown/appkit/dist/esm/exports/core.js": {
-    "file": "assets/core-CHvv49h2.js",
+    "file": "assets/core-D1Tllmof.js",
     "name": "core",
     "src": "node_modules/@reown/appkit/dist/esm/exports/core.js",
     "isDynamicEntry": true,
     "imports": [
       "_chunk-C2Cleczu.js",
       "resources/js/app.jsx",
-      "_HelpersUtil-hUgZfnpC.js",
-      "_ApiController-BJDggAgb.js",
-      "_AlertController-dR39IiHk.js",
-      "_CaipNetworkUtil-Bn_ql2Sy.js",
+      "_HelpersUtil-geYaEJZ1.js",
+      "_ApiController-BVFeD0ja.js",
+      "_AlertController-B9LPHvwZ.js",
+      "_CaipNetworkUtil-B6eWK4FI.js",
       "_index.es-CCTRNKq2.js",
-      "_ccip-DMToySye.js"
+      "_ccip-DySeKO8n.js"
     ],
     "dynamicImports": [
       "node_modules/@reown/appkit-controllers/dist/esm/exports/features.js",
@@ -682,7 +682,7 @@
     "isEntry": true
   },
   "resources/js/app.jsx": {
-    "file": "assets/app-CNc8ZEo0.js",
+    "file": "assets/app-CdRebLh3.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,

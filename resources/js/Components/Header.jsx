@@ -16,7 +16,7 @@ const GoogleLogo = ({ className }) => (
 );
 
 export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, navigateTo, globalAddress, setGlobalAddress, isChatOpen, setIsChatOpen, auth, onLogout, onLoginSuccess }) {
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' && window.location.hostname === '127.0.0.1' && window.location.port !== '8000' ? 'http://127.0.0.1:8000' : window.location.origin);
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
   // --- STATE ---
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -39,7 +39,10 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
   const [connectingDetails, setConnectingDetails] = useState('');
   const [selectedWalletType, setSelectedWalletType] = useState(null);
 
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState([
+    { id: 1, text: "Transaksi baru sukses dikonfirmasi.", type: "success", read: false },
+    { id: 2, text: "Pesan baru masuk dari kolektor.", type: "info", read: false },
+  ]);
   const [chatMessages, setChatMessages] = useState([
     { id: 1, sender: 'support', text: "Halo! Ada yang bisa dibantu hari ini?", time: "14:32" },
   ]);
@@ -50,7 +53,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
 
   useEffect(() => {
     const provider = getEthereumProvider();
-    if (!provider) return;
+    if (!provider || typeof provider.request !== 'function') return;
 
     const handleAccountsChanged = (accounts) => {
       if (Array.isArray(accounts) && accounts.length > 0) {
@@ -75,11 +78,12 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
         const accounts = await provider.request({ method: 'eth_accounts' });
         handleAccountsChanged(accounts);
       } catch (error) {
-        console.warn('MetaMask account init warning:', error);
+        console.warn('Wallet account init warning:', error);
       }
     };
 
     initializeWallet();
+
     if (typeof provider.on === 'function') {
       provider.on('accountsChanged', handleAccountsChanged);
       provider.on('chainChanged', handleChainChanged);
@@ -279,6 +283,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
     try {
       const response = await fetch(`${apiBaseUrl}/api/login`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
@@ -402,7 +407,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
                         }
 
                         setIsProfileDropdownOpen(false);
-                        window.location.href = `${apiBaseUrl}/auth/google/redirect?action=link`;
+                        window.location.href = '/auth/google/redirect?action=link';
                       }}
                       className="w-full text-left px-4 py-2 text-white text-sm hover:bg-sky-500/20 transition flex items-center gap-2 border-t border-white/10"
                     >
@@ -484,7 +489,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
                     <>
                       <button onClick={connectWallet} className="w-full bg-gradient-to-r from-emerald-400 to-emerald-500 py-3 rounded-2xl font-semibold text-slate-950 shadow-xl shadow-emerald-600/20 hover:brightness-110 transition">Connect Wallet</button>
                       <button onClick={() => setIsLoginForm(true)} className="w-full bg-slate-900 border border-white/10 py-3 rounded-2xl text-white font-semibold hover:bg-slate-800 transition">Register</button>
-                      <a href={`${apiBaseUrl}/auth/google/redirect`} className="w-full inline-flex items-center justify-center gap-3 bg-white text-slate-950 py-3 rounded-2xl font-semibold hover:brightness-95 transition border border-slate-200/20">
+                      <a href="/auth/google/redirect" className="w-full inline-flex items-center justify-center gap-3 bg-white text-slate-950 py-3 rounded-2xl font-semibold hover:brightness-95 transition border border-slate-200/20">
                         <GoogleLogo className="h-5 w-5" />
                         <span className="text-sm">Login dengan Google</span>
                       </a>
@@ -498,7 +503,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
                         <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
                         <div className="relative flex justify-center text-[11px] text-slate-500"><span className="bg-slate-950 px-2">ATAU</span></div>
                       </div>
-                      <a href={`${apiBaseUrl}/auth/google/redirect`} className="w-full inline-flex items-center justify-center gap-3 bg-white text-slate-950 py-3 rounded-2xl font-semibold hover:brightness-95 transition border border-slate-200/20">
+                      <a href="/auth/google/redirect" className="w-full inline-flex items-center justify-center gap-3 bg-white text-slate-950 py-3 rounded-2xl font-semibold hover:brightness-95 transition border border-slate-200/20">
                         <GoogleLogo className="h-5 w-5" />
                         <span className="text-sm">Login menggunakan Google</span>
                       </a>

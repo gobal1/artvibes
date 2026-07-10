@@ -50,18 +50,24 @@ export function getEthereumProvider() {
     return null;
   }
 
-  // Jika sudah terhubung lewat WalletConnect di mobile, pakai session aktifnya
-  if (activeProvider) {
+  if (activeProvider && typeof activeProvider.request === 'function') {
     return activeProvider;
   }
 
   const injected = window.ethereum;
-  if (injected?.request) {
-    return injected;
+  if (!injected) {
+    return null;
   }
 
-  if (Array.isArray(injected?.providers)) {
-    return injected.providers.find((provider) => provider?.request) || null;
+  if (Array.isArray(injected.providers)) {
+    const selected = injected.providers.find((provider) => typeof provider?.request === 'function');
+    if (selected) {
+      return selected;
+    }
+  }
+
+  if (typeof injected.request === 'function') {
+    return injected;
   }
 
   return null;
@@ -102,7 +108,6 @@ export function hasEthereumProvider() {
 export async function connectWallet({ walletType = 'metamask' } = {}) {
   let provider = getEthereumProvider();
 
-  // JIKA TIDAK ADA INJECTED PROVIDER (Skenario Browser Chrome HP Mobile)
   if (!provider) {
     try {
       const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
@@ -110,30 +115,40 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
         throw new Error('VITE_WALLETCONNECT_PROJECT_ID belum di-set di file .env');
       }
 
-      // Inisialisasi koneksi jembatan aman untuk perangkat mobile
       const wcProvider = await EthereumProvider.init({
-        projectId: projectId,
+        projectId,
         chains: [getConfiguredChainId()],
-        showQrModal: true, 
-        qrModalOptions: { themeMode: 'dark' }
+        showQrModal: true,
+        qrModalOptions: { themeMode: 'dark' },
       });
 
-      // Buka modul wallet eksternal
       await wcProvider.connect();
-      
       activeProvider = wcProvider;
       provider = wcProvider;
     } catch (error) {
-      throw new Error(`Gagal terhubung ke Mobile Wallet: ${error.message}`);
+      throw new Error(`Gagal terhubung ke Mobile Wallet: ${error?.message || error}`);
     }
   }
 
+  activeProvider = provider;
   try {
-    const accounts = await provider.request({ method: 'eth_requestAccounts' });
-    if (!accounts || accounts.length === 0) {
+    let accounts = [];
+
+    try {
+      accounts = await provider.request({ method: 'eth_accounts' });
+    } catch (accountError) {
+      console.warn('eth_accounts request failed, falling back to eth_requestAccounts', accountError);
+    }
+
+    if (!Array.isArray(accounts) || accounts.length === 0) {
+      accounts = await provider.request({ method: 'eth_requestAccounts' });
+    }
+
+    if (!Array.isArray(accounts) || accounts.length === 0) {
       throw new Error('Gagal mengambil akun wallet. Pastikan wallet sudah terhubung.');
     }
-    return accounts[0];
+
+    return accounts[0].toLowerCase();
   } catch (error) {
     if (error?.code === 4001) {
       throw new Error('Anda membatalkan permintaan koneksi wallet.');
@@ -165,8 +180,22 @@ export async function ensureCorrectNetwork(expectedChainId = getConfiguredChainI
   }
 }
 
-export async function requireWalletAccess(expectedChainId) {
-  await connectWallet();
+export async function requireWalletAccess(expectedChainId = getConfiguredChainId()) {
+  const provider = getEthereumProvider();
+
+  let accounts = [];
+  if (provider) {
+    try {
+      accounts = await provider.request({ method: 'eth_accounts' });
+    } catch (error) {
+      console.warn('requireWalletAccess eth_accounts failed:', error);
+    }
+  }
+
+  if (!Array.isArray(accounts) || accounts.length === 0) {
+    await connectWallet();
+  }
+
   await ensureCorrectNetwork(expectedChainId);
 }
 
