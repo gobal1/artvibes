@@ -58,8 +58,17 @@ function buildCurrentDappUrl() {
   return window.location.href;
 }
 
-function openDeepLink(link) {
+function openDeepLink(link, targetWindow = null) {
   if (typeof window === 'undefined' || !link) return;
+
+  if (targetWindow && !targetWindow.closed) {
+    try {
+      targetWindow.location.href = link;
+      return;
+    } catch (navErr) {
+      console.info('Target window navigation failed', navErr);
+    }
+  }
 
   try {
     window.location.assign(link);
@@ -79,7 +88,7 @@ function openDeepLink(link) {
   }
 }
 
-async function tryOpenDeepLinkCandidates(links = []) {
+async function tryOpenDeepLinkCandidates(links = [], targetWindow = null) {
   if (!Array.isArray(links) || links.length === 0) return false;
 
   for (const link of links) {
@@ -131,7 +140,7 @@ async function tryOpenDeepLinkCandidates(links = []) {
     });
 
     console.info('Trying deep link candidate:', link);
-    openDeepLink(link);
+    openDeepLink(link, targetWindow);
     const opened = await openedPromise;
     if (opened) {
       return true;
@@ -292,9 +301,14 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
       // Jika error lain, fallback ke deep link pada mobile
       if (isMobile) {
         const redirectUrl = getMobileWalletRedirectUrl(walletType);
+        const walletWindow = typeof window !== 'undefined' ? window.open('about:blank', '_blank') : null;
         if (redirectUrl) {
-          console.log('📱 Redirecting ke wallet mobile app:', walletType);
-          window.location.href = redirectUrl;
+          console.log('📱 Redirecting ke wallet mobile app:', walletType, 'via popup window');
+          if (walletWindow && !walletWindow.closed) {
+            walletWindow.location.href = redirectUrl;
+          } else {
+            window.location.href = redirectUrl;
+          }
           return null;
         }
       }
@@ -424,6 +438,7 @@ export async function openMetaMaskSignOnly() {
   }
 
   try {
+    const walletWindow = typeof window !== 'undefined' ? window.open('about:blank', '_blank') : null;
     const wcModule = await import('@walletconnect/web3-provider');
     const WalletConnectProvider = wcModule?.default || wcModule;
 
@@ -457,12 +472,16 @@ export async function openMetaMaskSignOnly() {
       window.wcProvider = wcProvider;
       console.log('📱 Opening MetaMask (sign only) attempts:', deepLinks);
 
-      const opened = await tryOpenDeepLinkCandidates(deepLinks);
+      const opened = await tryOpenDeepLinkCandidates(deepLinks, walletWindow);
       if (!opened) {
         console.warn('MetaMask deep links did not open, falling back to universal link');
         const fallbackLink = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
         try {
-          window.location.assign(fallbackLink);
+          if (walletWindow && !walletWindow.closed) {
+            walletWindow.location.assign(fallbackLink);
+          } else {
+            window.location.assign(fallbackLink);
+          }
         } catch (assignErr) {
           console.info('Fallback assign failed', assignErr);
         }
