@@ -119,24 +119,10 @@ export default function WalletModal({ isOpen, onClose, onSelectWallet }) {
                       <button
                         onClick={async (e) => {
                           e.stopPropagation();
-                          const popupWindow = window.open('about:blank', '_blank');
-                          if (!popupWindow || popupWindow.closed) {
-                            // eslint-disable-next-line no-alert
-                            alert('Gagal membuka jendela MetaMask. Mohon izinkan pop-up atau coba ulang.');
-                            return;
-                          }
-                          popupWindow.document.title = 'Mengarahkan ke MetaMask…';
-                          popupWindow.document.body.style.fontFamily = 'sans-serif';
-                          popupWindow.document.body.style.padding = '20px';
-                          popupWindow.document.body.style.color = '#111';
-                          popupWindow.document.body.innerHTML = '<h2>Mengarahkan ke MetaMask…</h2><p>Tunggu sebentar, lalu konfirmasi tanda tangan di aplikasi MetaMask Anda.</p>';
                           try {
-                            await openMetaMaskSignOnly(popupWindow);
+                            await openMetaMaskSignOnly();
                           } catch (err) {
                             console.error('openMetaMaskSignOnly failed', err);
-                            if (popupWindow && !popupWindow.closed) {
-                              popupWindow.close();
-                            }
                             // eslint-disable-next-line no-alert
                             alert('Gagal membuka MetaMask otomatis. Pastikan Anda memilih MetaMask app saat chooser muncul, lalu coba lagi.');
                           }
