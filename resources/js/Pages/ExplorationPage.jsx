@@ -20,7 +20,7 @@ import {
   CalendarDays
 } from 'lucide-react';
 import Footer from '../Components/Footer';
-import { buyListedToken, getConfiguredChainMetadata, getExplorerBaseUrl, getEthereumProvider, getListingState, getNativeCurrencySymbol, requireWalletAccess, shortenAddress } from '../Utils/artVibesMarket';
+import { buyListedToken, getConfiguredChainMetadata, getExplorerBaseUrl, getListingState, getNativeCurrencySymbol, requireWalletAccess, shortenAddress } from '../Utils/artVibesMarket';
 
 // Menerima props 'products' sesuai kiriman data dari backend
 export default function ExplorationPage({ products = [], isLoading = false, productsError = '', auth = null, onSelectProduct, onProductPurchased, navigateTo }) {
@@ -585,81 +585,97 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
   const handleBuyNft = async (nft) => {
     console.log('📦 === PRODUK DIPILIH ===');
     console.log('Struktur nft:', JSON.stringify(nft, null, 2));
-
-    const tokenIdRaw = nft.nft?.token_id ?? nft.token_id;
+    
+    const tokenIdRaw = nft.nft?.token_id ?? nft.token_id ?? nft.idproduk;
     const tokenId = Number(tokenIdRaw);
     const priceRaw = nft.price_crypto ?? nft.price ?? nft.nft?.price;
-    const productId = nft.idproduk || nft.id || nft.id_produk;
-    const buyerId = auth?.user?.idUser || auth?.user?.id || null;
 
     console.log(`🔍 Data yang di-extract:`);
     console.log(`   - Token ID Raw: ${tokenIdRaw}`);
     console.log(`   - Token ID Number: ${tokenId}`);
     console.log(`   - Price: ${priceRaw}`);
-    console.log(`   - Product ID: ${productId}`);
-    console.log(`   - Buyer ID: ${buyerId}`);
-
-    if (!buyerId) {
-      alert('Silahkan login terlebih dahulu, setelah itu baru bisa melakukan pembelian.');
-      return;
-    }
-
-    if (!productId) {
-      alert('❌ Gagal: ID Produk tidak ditemukan di data frontend. Cek log console.');
-      console.error('Data NFT tidak memiliki idproduk:', nft);
-      return;
-    }
-
-    const provider = getEthereumProvider();
-    if (!provider) {
-      alert('Wallet belum terhubung. Silakan gunakan tombol Connect Wallet terlebih dahulu.');
-      return;
-    }
-
-    if (!Number.isInteger(tokenId) || tokenId <= 0) {
-      alert('NFT ini belum di-mint ke blockchain. Mint dulu dari dashboard creator agar transaksi buy bisa diproses.');
-      return;
-    }
 
     try {
-      await requireWalletAccess();
-      console.log('🔄 === MEMULAI PROSES PEMBELIAN DI BLOCKCHAIN ===');
-      const result = await buyListedToken(tokenId, priceRaw);
+      if (!window.ethereum) {
+        alert('MetaMask tidak ditemukan. Silakan install MetaMask terlebih dahulu.');
+        return;
+      }
 
-      console.log('🔄 === BLOCKCHAIN SUKSES ===');
+      await requireWalletAccess();
+
+      if (!Number.isInteger(tokenId) || tokenId <= 0) {
+        alert('NFT ini belum di-mint ke blockchain. Mint dulu dari dashboard creator agar transaksi buy bisa diproses.');
+        return;
+      }
+
+      // 1. CARI TAHU ID PRODUK DAN ID PEMBELI YANG BENAR
+      // Coba tangkap berbagai kemungkinan nama variabel dari object nft
+      const productId = nft.idproduk || nft.id || nft.id_produk;
+      
+      // Sesuaikan dengan state user yang kamu pakai (auth atau currentUser)
+      // Kita pakai opsional chaining (?.) agar aplikasi tidak error jika undefined
+      const buyerId = typeof auth !== 'undefined' ? (auth?.user?.idUser || auth?.user?.id) : (typeof currentUser !== 'undefined' ? currentUser?.id : null);
+
+      // 2. JARING PENGAMAN: Jangan lanjut kalau ID kosong agar tidak buang-buang gas fee!
+      if (!productId) {
+          alert('❌ Gagal: ID Produk tidak ditemukan di data frontend. Cek log console.');
+          console.error("Data NFT tidak memiliki idproduk:", nft);
+          return;
+      }
+        if (!buyerId) {
+          alert('Silahkan login terlebih dahulu, setelah itu baru bisa melakukan pembelian.');
+          return;
+        }
+
+      console.log('🔄 === MEMULAI PROSES PEMBELIAN DI BLOCKCHAIN ===');
+      // 3. Jalankan transaksi via MetaMask
+      const result = await buyListedToken(tokenId, priceRaw);
+      
+      console.log('🔄 === BLOCKCHAIN SUKSES! SINKRONISASI DATABASE LARAVEL ===');
+      
+      // 4. Kirim data ke Laravel dengan ID yang sudah divalidasi dan pasti tidak null
+      const response = await fetch('/api/transaksi/purchase', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          produk_id: productId,
+          buyer_id: buyerId,
+          tx_hash: result.txHash,
+          amount: priceRaw,
+        }),
+      });
+
+      // Cek respon detail jika Laravel melempar error
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        console.error('Detail Error Laravel:', errData);
+        throw new Error(errData.message || 'Transaksi Blockchain sukses, tetapi gagal memperbarui database lokal.');
+      }
+
+      const resData = await response.json();
+      console.log('Response dari Laravel:', resData);
+
+      // 5. Jalankan callback bawaan jika ada
       if (typeof onProductPurchased === 'function') {
-        await onProductPurchased({ ...nft, idproduk: productId }, {
+        await onProductPurchased(nft, {
           txHash: result.txHash,
           amount: priceRaw,
         });
-      } else {
-        const response = await fetch('/api/transaksi/purchase', {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-          },
-          body: JSON.stringify({
-            produk_id: productId,
-            buyer_id: buyerId,
-            tx_hash: result.txHash,
-            amount: priceRaw,
-          }),
-        });
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.message || 'Sinkronisasi pembelian ke database lokal gagal.');
-        }
       }
 
       console.log('✅ === SEMUA SINKRONISASI SELESAI ===');
       alert(`✅ Pembelian Sukses!\n\nDatabase otomatis diperbarui.\nNFT telah berpindah ke Dashboard Koleksi Anda.`);
+      
+      // Pindah ke dashboard koleksi
       navigateTo('dashboard', { tab: 'koleksi' });
+
     } catch (error) {
-      console.error('❌ === BUY FAILED ===');
+      console.error('❌ === BUY OR SYNC FAILED ===');
       console.error('Error object:', error);
 
       const rawError = String(error?.message || error?.reason || '').toLowerCase();

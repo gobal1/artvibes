@@ -16,7 +16,7 @@ import {
 import Header from '../Components/Header';
 import Footer from '../Components/Footer';
 import Sidebar from '../Components/Sidebar';
-import { buyListedToken, getConfiguredChainMetadata, getExplorerBaseUrl, getEthereumProvider, getListingState, getNativeCurrencySymbol, requireWalletAccess, shortenAddress } from '../Utils/artVibesMarket';
+import { buyListedToken, getConfiguredChainMetadata, getExplorerBaseUrl, getListingState, getNativeCurrencySymbol, requireWalletAccess, shortenAddress } from '../Utils/artVibesMarket';
 
 export default function ProductDetailPage({ product, navigateTo, auth, onProductPurchased }) {
   const chainMeta = getConfiguredChainMetadata();
@@ -269,51 +269,49 @@ export default function ProductDetailPage({ product, navigateTo, auth, onProduct
   };
 
   const handleBuyNow = async () => {
-    const tokenIdRaw = currentProduct.nft?.token_id ?? currentProduct.token_id;
+    const tokenIdRaw = currentProduct.nft?.token_id ?? currentProduct.token_id ?? currentProduct.idproduk;
     const tokenId = Number(tokenIdRaw);
-    const productId = currentProduct.idproduk || currentProduct.id || currentProduct.id_produk;
-    const buyerId = auth?.user?.idUser || auth?.user?.id || null;
-    const priceRaw = currentProduct.price_crypto ?? currentProduct.price ?? currentProduct.nft?.price;
-
-    if (!buyerId) {
-      alert('Silahkan login terlebih dahulu, setelah itu baru bisa melakukan pembelian.');
-      return;
-    }
-
-    if (!productId) {
-      alert('❌ Gagal: ID Produk tidak ditemukan. Pastikan produk terload dengan benar.');
-      console.error('Product missing idproduk:', currentProduct);
-      return;
-    }
-
-    const provider = getEthereumProvider();
-    if (!provider) {
-      alert('Wallet belum terhubung. Silakan gunakan tombol Connect Wallet terlebih dahulu.');
-      return;
-    }
-
-    if (!Number.isInteger(tokenId) || tokenId <= 0) {
-      alert('NFT ini belum di-mint ke blockchain. Mint dulu dari dashboard creator agar transaksi buy bisa diproses.');
-      return;
-    }
 
     try {
       setIsBuying(true);
+      if (!window.ethereum) {
+        alert('MetaMask tidak ditemukan. Silakan install MetaMask terlebih dahulu.');
+        return;
+      }
+
+      // Pastikan user ter-login di aplikasi sebelum melakukan pembelian
+      const productId = currentProduct.idproduk || currentProduct.id || currentProduct.id_produk;
+      const buyerId = auth?.user?.idUser || auth?.user?.id || null;
+
+      if (!productId) {
+        alert('❌ Gagal: ID Produk tidak ditemukan. Pastikan produk terload dengan benar.');
+        console.error('Product missing idproduk:', currentProduct);
+        return;
+      }
+      if (!buyerId) {
+          alert('Silahkan login terlebih dahulu, setelah itu baru bisa melakukan pembelian.');
+        return;
+      }
+
       await requireWalletAccess();
 
-      const result = await buyListedToken(tokenId, priceRaw);
+      if (!Number.isInteger(tokenId) || tokenId <= 0) {
+        alert('NFT ini belum di-mint ke blockchain. Mint dulu dari dashboard creator agar transaksi buy bisa diproses.');
+        return;
+      }
+
+      const result = await buyListedToken(tokenId, currentProduct.price_crypto);
       alert(`Pembelian sukses. Tx hash: ${result.txHash}`);
 
+      // Sinkronisasi frontend/backend lewat callback yang sama seperti di ExplorationPage
       if (typeof onProductPurchased === 'function') {
         const purchased = await onProductPurchased(currentProduct, {
           txHash: result.txHash,
-          amount: priceRaw,
+          amount: currentProduct.price_crypto,
         });
         if (purchased) {
           navigateTo('dashboard', { tab: 'koleksi' });
         }
-      } else {
-        navigateTo('dashboard', { tab: 'koleksi' });
       }
     } catch (error) {
       console.error('Buy transaction failed:', error);

@@ -20,10 +20,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarPanelOpen, setSidebarPanelOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [globalAddress, setGlobalAddress] = useState(() => {
-    if (typeof window === 'undefined') return '';
-    return window.localStorage.getItem('artvibesWalletAddress') || '';
-  });
+  const [globalAddress, setGlobalAddress] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedCreator, setSelectedCreator] = useState(null);
 
@@ -66,12 +63,7 @@ function App() {
     const checkUserSession = async () => {
       try {
         console.log('🔄 Checking /api/me...');
-        const response = await fetch('/api/me', {
-          credentials: 'include',
-          headers: {
-            'Accept': 'application/json',
-          },
-        });
+        const response = await fetch('/api/me');
         if (response.ok) {
           const data = await response.json();
           console.log('✅ /api/me response:', data);
@@ -213,20 +205,7 @@ function App() {
     const wrappedAuth = { user: userData };
     setAuth(wrappedAuth);
     window.user = userData;
-    if (typeof window !== 'undefined' && userData?.wallet_address) {
-      window.localStorage.setItem('artvibesWalletAddress', userData.wallet_address.toLowerCase());
-      setGlobalAddress(userData.wallet_address.toLowerCase());
-    }
   };
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (globalAddress) {
-      window.localStorage.setItem('artvibesWalletAddress', globalAddress.toLowerCase());
-    } else {
-      window.localStorage.removeItem('artvibesWalletAddress');
-    }
-  }, [globalAddress]);
 
   const handleLogout = async () => {
     try {
@@ -234,7 +213,6 @@ function App() {
       // Call logout API to clear session di backend
       const response = await fetch('/api/logout', {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',

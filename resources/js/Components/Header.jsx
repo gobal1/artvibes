@@ -6,8 +6,6 @@ import WalletModal from './WalletModal';
 import WalletConnectingModal from './WalletConnectingModal';
 import { connectWallet as connectWalletUtil, getEthereumProvider } from '../Utils/artVibesMarket';
 
-const WALLET_STORAGE_KEY = 'artvibesWalletAddress';
-
 const GoogleLogo = ({ className }) => (
   <svg viewBox="0 0 533.5 544.3" className={className} aria-hidden="true">
     <path fill="#4285F4" d="M533.5 278.4c0-18.1-1.5-36.4-4.6-53.9H272.1v102h146.3c-6.3 34-25.3 62.8-54.1 82.1v68.3h87.5c51.1-47 80.7-116.3 80.7-198.5z"/>
@@ -54,24 +52,21 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
   }, [globalAddress, userAddress]);
 
   useEffect(() => {
-    const provider = getEthereumProvider();
-    if (!provider || typeof provider.request !== 'function') return;
+    if (typeof window.ethereum === 'undefined') return;
 
     const handleAccountsChanged = (accounts) => {
       if (Array.isArray(accounts) && accounts.length > 0) {
         const walletAddress = accounts[0].toLowerCase();
         setUserAddress(walletAddress);
         if (typeof setGlobalAddress === 'function') setGlobalAddress(walletAddress);
-        if (typeof window !== 'undefined') window.localStorage.setItem(WALLET_STORAGE_KEY, walletAddress);
       } else {
         setUserAddress('');
         if (typeof setGlobalAddress === 'function') setGlobalAddress('');
-        if (typeof window !== 'undefined') window.localStorage.removeItem(WALLET_STORAGE_KEY);
       }
     };
 
     const handleChainChanged = () => {
-      const walletAddress = provider.selectedAddress || userAddress || globalAddress;
+      const walletAddress = window.ethereum.selectedAddress || userAddress || globalAddress;
       if (walletAddress && typeof setGlobalAddress === 'function') {
         setGlobalAddress(walletAddress.toLowerCase());
       }
@@ -79,37 +74,20 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
 
     const initializeWallet = async () => {
       try {
-        const accounts = await provider.request({ method: 'eth_accounts' });
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
         handleAccountsChanged(accounts);
       } catch (error) {
-        console.warn('Wallet account init warning:', error);
-        if (typeof window !== 'undefined') {
-          const storedWallet = window.localStorage.getItem(WALLET_STORAGE_KEY);
-          if (storedWallet) {
-            setUserAddress(storedWallet.toLowerCase());
-            if (typeof setGlobalAddress === 'function') {
-              setGlobalAddress(storedWallet.toLowerCase());
-            }
-          }
-        }
+        console.warn('MetaMask account init warning:', error);
       }
     };
 
     initializeWallet();
-
-    if (typeof provider.on === 'function') {
-      provider.on('accountsChanged', handleAccountsChanged);
-      provider.on('chainChanged', handleChainChanged);
-    }
+    window.ethereum.on('accountsChanged', handleAccountsChanged);
+    window.ethereum.on('chainChanged', handleChainChanged);
 
     return () => {
-      if (typeof provider.removeListener === 'function') {
-        provider.removeListener('accountsChanged', handleAccountsChanged);
-        provider.removeListener('chainChanged', handleChainChanged);
-      }
-      if (typeof window !== 'undefined') {
-        window.localStorage.removeItem(WALLET_STORAGE_KEY);
-      }
+      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+      window.ethereum.removeListener('chainChanged', handleChainChanged);
     };
   }, [setGlobalAddress, userAddress, globalAddress]);
 
@@ -254,9 +232,6 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
       setConnectingStatus('success');
       setConnectingMessage('Wallet berhasil terhubung!');
       setUserAddress(walletAddress);
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(WALLET_STORAGE_KEY, walletAddress.toLowerCase());
-      }
       
       if (typeof setGlobalAddress === 'function') {
         setGlobalAddress(walletAddress);
@@ -302,7 +277,6 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
     try {
       const response = await fetch(`${apiBaseUrl}/api/login`, {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
@@ -426,7 +400,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
                         }
 
                         setIsProfileDropdownOpen(false);
-                        window.location.href = '/auth/google/redirect?action=link';
+                        window.location.href = `${apiBaseUrl}/auth/google/redirect?action=link`;
                       }}
                       className="w-full text-left px-4 py-2 text-white text-sm hover:bg-sky-500/20 transition flex items-center gap-2 border-t border-white/10"
                     >
@@ -508,7 +482,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
                     <>
                       <button onClick={connectWallet} className="w-full bg-gradient-to-r from-emerald-400 to-emerald-500 py-3 rounded-2xl font-semibold text-slate-950 shadow-xl shadow-emerald-600/20 hover:brightness-110 transition">Connect Wallet</button>
                       <button onClick={() => setIsLoginForm(true)} className="w-full bg-slate-900 border border-white/10 py-3 rounded-2xl text-white font-semibold hover:bg-slate-800 transition">Register</button>
-                      <a href="/auth/google/redirect" className="w-full inline-flex items-center justify-center gap-3 bg-white text-slate-950 py-3 rounded-2xl font-semibold hover:brightness-95 transition border border-slate-200/20">
+                      <a href={`${apiBaseUrl}/auth/google/redirect`} className="w-full inline-flex items-center justify-center gap-3 bg-white text-slate-950 py-3 rounded-2xl font-semibold hover:brightness-95 transition border border-slate-200/20">
                         <GoogleLogo className="h-5 w-5" />
                         <span className="text-sm">Login dengan Google</span>
                       </a>
@@ -522,7 +496,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
                         <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
                         <div className="relative flex justify-center text-[11px] text-slate-500"><span className="bg-slate-950 px-2">ATAU</span></div>
                       </div>
-                      <a href="/auth/google/redirect" className="w-full inline-flex items-center justify-center gap-3 bg-white text-slate-950 py-3 rounded-2xl font-semibold hover:brightness-95 transition border border-slate-200/20">
+                      <a href={`${apiBaseUrl}/auth/google/redirect`} className="w-full inline-flex items-center justify-center gap-3 bg-white text-slate-950 py-3 rounded-2xl font-semibold hover:brightness-95 transition border border-slate-200/20">
                         <GoogleLogo className="h-5 w-5" />
                         <span className="text-sm">Login menggunakan Google</span>
                       </a>

@@ -16,7 +16,6 @@ export default function LoginPage({ onLoginSuccess, navigateTo }) {
       // Menembak endpoint login Laravel kamu
       const response = await fetch('/api/login', {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { ethers } from 'ethers';
 import { Mail, Lock, ArrowRight, X, ShieldCheck, Plus, MessageSquare, Trash2, Edit3, DollarSign, Bell, Heart, ChevronDown, Music2, Video } from 'lucide-react';
 import ChatSidebar from '../Components/ChatSidebar';
-import { getEthereumProvider } from '../Utils/artVibesMarket';
 import DashboardActivityPage from './DashboardActivityPage';
 import { uploadAssetToIpfs, uploadMetadataToIpfs, linkNftToProduct } from '../Utils/ipfsApi';
 import { getConfiguredChainId, mintNftOnChain, listTokenOnChain, updateListingPriceOnChain, cancelListingOnChain, getNativeCurrencySymbol } from '../Utils/artVibesMarket';
@@ -509,61 +508,38 @@ export default function ProfileDashboard({
   const getPreferredWalletAddress = useCallback(() => {
     if (globalAddress) return globalAddress.toLowerCase();
     if (auth?.user?.wallet_address) return auth.user.wallet_address.toLowerCase();
-    if (typeof window !== 'undefined') {
-      const storedWallet = window.localStorage.getItem('artvibesWalletAddress');
-      if (storedWallet) return storedWallet.toLowerCase();
-    }
-    const provider = getEthereumProvider();
-    if (provider?.selectedAddress) return provider.selectedAddress.toLowerCase();
+    if (typeof window !== 'undefined' && window.ethereum?.selectedAddress) return window.ethereum.selectedAddress.toLowerCase();
     return null;
   }, [globalAddress, auth?.user?.wallet_address]);
 
   const fetchWalletBalance = useCallback(async (walletAddress) => {
     try {
-      const providerSource = getEthereumProvider();
-      let provider = null;
-      let chainId = selectedChain;
-
-      if (walletAddress && providerSource && typeof providerSource.request === 'function') {
-        try {
-          const chainHex = await providerSource.request({ method: 'eth_chainId' });
-          chainId = parseInt(chainHex, 16) || selectedChain;
-          if (chainId && chainId !== selectedChain) {
-            setSelectedChain(chainId);
-          }
-          provider = new ethers.BrowserProvider(providerSource);
-        } catch (providerError) {
-          console.warn('Provider-based wallet balance fetch failed, falling back to read-only RPC:', providerError);
-          provider = null;
-        }
+      if (!walletAddress || typeof window.ethereum === 'undefined') {
+        setWalletUsdBalance(null);
+        setWalletNativeBalance(null);
+        return;
       }
 
-      if (!provider) {
-        const rpcUrl = selectedChainInfo?.rpc || getConfiguredChainMetadata().rpcUrl;
-        if (!rpcUrl) {
-          throw new Error('RPC URL tidak tersedia untuk jaringan saat ini.');
-        }
-        provider = new ethers.JsonRpcProvider(rpcUrl);
+      const chainHex = await window.ethereum.request({ method: 'eth_chainId' });
+      const chainId = parseInt(chainHex, 16);
+      if (chainId && chainId !== selectedChain) {
+        setSelectedChain(chainId);
       }
-
-      const tokenConfig = TOKEN_CONFIG_BY_CHAIN[chainId] || TOKEN_CONFIG_BY_CHAIN[selectedChain] || {};
-      const coinId = mapChainIdToCoinGeckoId(chainId || selectedChain);
+      const tokenConfig = TOKEN_CONFIG_BY_CHAIN[chainId];
+      const coinId = mapChainIdToCoinGeckoId(chainId);
 
       let balanceEth = 0;
       try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
         const balanceWei = await provider.getBalance(walletAddress);
         balanceEth = Number(ethers.formatEther(balanceWei));
-      } catch (balanceError) {
-        console.warn('Failed to read balance through selected provider, trying fallback RPC:', balanceError);
-        if (providerSource && typeof providerSource.request === 'function') {
-          const balanceWeiHex = await providerSource.request({
-            method: 'eth_getBalance',
-            params: [walletAddress, 'latest'],
-          });
-          balanceEth = parseInt(balanceWeiHex, 16) / 1e18;
-        } else {
-          throw balanceError;
-        }
+      } catch (providerError) {
+        console.warn('BrowserProvider balance failed, fallback to eth_getBalance', providerError);
+        const balanceWeiHex = await window.ethereum.request({
+          method: 'eth_getBalance',
+          params: [walletAddress, 'latest'],
+        });
+        balanceEth = parseInt(balanceWeiHex, 16) / 1e18;
       }
 
       setWalletNativeBalance(balanceEth);
@@ -581,12 +557,12 @@ export default function ProfileDashboard({
 
       if (tokenConfig?.address) {
         try {
-          const tokenProvider = new ethers.BrowserProvider(providerSource);
+          const provider = new ethers.BrowserProvider(window.ethereum);
           const erc20Abi = [
             'function balanceOf(address owner) view returns (uint256)',
             'function decimals() view returns (uint8)',
           ];
-          const tokenContract = new ethers.Contract(tokenConfig.address, erc20Abi, tokenProvider);
+          const tokenContract = new ethers.Contract(tokenConfig.address, erc20Abi, provider);
           const tokenBalanceRaw = await tokenContract.balanceOf(walletAddress);
           const tokenDecimals = await tokenContract.decimals();
           const tokenBalance = Number(ethers.formatUnits(tokenBalanceRaw, tokenDecimals));
@@ -612,23 +588,15 @@ export default function ProfileDashboard({
   useEffect(() => {
     const initBalance = async () => {
       let wallet = getPreferredWalletAddress();
-      const provider = getEthereumProvider();
 
-      if (!wallet && provider && typeof provider.request === 'function') {
+      if (!wallet && typeof window.ethereum !== 'undefined') {
         try {
-          const accounts = await provider.request({ method: 'eth_accounts' });
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
           if (Array.isArray(accounts) && accounts.length > 0) {
             wallet = accounts[0].toLowerCase();
           }
         } catch (error) {
-          console.warn('Unable to read wallet accounts on init:', error);
-        }
-      }
-
-      if (!wallet && typeof window !== 'undefined') {
-        const storedWallet = window.localStorage.getItem('artvibesWalletAddress');
-        if (storedWallet) {
-          wallet = storedWallet.toLowerCase();
+          console.warn('Unable to read MetaMask accounts on init:', error);
         }
       }
 
@@ -639,21 +607,15 @@ export default function ProfileDashboard({
   }, [getPreferredWalletAddress, fetchWalletBalance]);
 
   useEffect(() => {
-    const provider = getEthereumProvider();
-    if (!provider || typeof provider.request !== 'function') return;
+    if (typeof window.ethereum === 'undefined') return;
 
     const handleAccountsChanged = (accounts) => {
       if (Array.isArray(accounts) && accounts.length > 0) {
         const wallet = accounts[0].toLowerCase();
         fetchWalletBalance(wallet);
       } else {
-        const storedWallet = typeof window !== 'undefined' ? window.localStorage.getItem('artvibesWalletAddress') : null;
-        if (storedWallet) {
-          fetchWalletBalance(storedWallet.toLowerCase());
-        } else {
-          setWalletUsdBalance(null);
-          setWalletNativeBalance(null);
-        }
+        setWalletUsdBalance(null);
+        setWalletNativeBalance(null);
       }
     };
 
@@ -662,23 +624,18 @@ export default function ProfileDashboard({
       if (wallet) fetchWalletBalance(wallet);
     };
 
-    if (typeof provider.on === 'function') {
-      provider.on('accountsChanged', handleAccountsChanged);
-      provider.on('chainChanged', handleChainChanged);
-    }
+    window.ethereum.on('accountsChanged', handleAccountsChanged);
+    window.ethereum.on('chainChanged', handleChainChanged);
 
     return () => {
-      if (typeof provider.removeListener === 'function') {
-        provider.removeListener('accountsChanged', handleAccountsChanged);
-        provider.removeListener('chainChanged', handleChainChanged);
-      }
+      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+      window.ethereum.removeListener('chainChanged', handleChainChanged);
     };
   }, [fetchWalletBalance, getPreferredWalletAddress]);
 
   useEffect(() => {
     const wallet = getPreferredWalletAddress();
-    const provider = getEthereumProvider();
-    if (!wallet || !provider || typeof provider.request !== 'function') return;
+    if (!wallet || typeof window.ethereum === 'undefined') return;
 
     const interval = setInterval(() => {
       fetchWalletBalance(wallet);
@@ -799,16 +756,15 @@ export default function ProfileDashboard({
 
             // Switch ke chain yang dipilih user sebelum mint
             const chosenChain = CHAIN_OPTIONS.find(c => c.id === selectedChain);
-            const provider = getEthereumProvider();
-            if (chosenChain && provider && typeof provider.request === 'function') {
+            if (chosenChain && typeof window.ethereum !== 'undefined') {
               try {
-                await provider.request({
+                await window.ethereum.request({
                   method: 'wallet_switchEthereumChain',
                   params: [{ chainId: chosenChain.hexId }],
                 });
               } catch (switchErr) {
                 if (switchErr?.code === 4902 && chosenChain.rpc) {
-                  await provider.request({
+                  await window.ethereum.request({
                     method: 'wallet_addEthereumChain',
                     params: [{
                       chainId: chosenChain.hexId,
