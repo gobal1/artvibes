@@ -63,7 +63,9 @@ function App() {
     const checkUserSession = async () => {
       try {
         console.log('🔄 Checking /api/me...');
-        const response = await fetch('/api/me');
+        const response = await fetch('/api/me', {
+          credentials: 'include',
+        });
         if (response.ok) {
           const data = await response.json();
           console.log('✅ /api/me response:', data);
@@ -213,6 +215,7 @@ function App() {
       // Call logout API to clear session di backend
       const response = await fetch('/api/logout', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
