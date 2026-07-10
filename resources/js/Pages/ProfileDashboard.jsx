@@ -517,32 +517,49 @@ export default function ProfileDashboard({
   const fetchWalletBalance = useCallback(async (walletAddress) => {
     try {
       const providerSource = getEthereumProvider();
-      if (!walletAddress || !providerSource || typeof providerSource.request !== 'function') {
-        setWalletUsdBalance(null);
-        setWalletNativeBalance(null);
-        return;
+      let provider = null;
+      let chainId = selectedChain;
+
+      if (walletAddress && providerSource && typeof providerSource.request === 'function') {
+        try {
+          const chainHex = await providerSource.request({ method: 'eth_chainId' });
+          chainId = parseInt(chainHex, 16) || selectedChain;
+          if (chainId && chainId !== selectedChain) {
+            setSelectedChain(chainId);
+          }
+          provider = new ethers.BrowserProvider(providerSource);
+        } catch (providerError) {
+          console.warn('Provider-based wallet balance fetch failed, falling back to read-only RPC:', providerError);
+          provider = null;
+        }
       }
 
-      const chainHex = await providerSource.request({ method: 'eth_chainId' });
-      const chainId = parseInt(chainHex, 16);
-      if (chainId && chainId !== selectedChain) {
-        setSelectedChain(chainId);
+      if (!provider) {
+        const rpcUrl = selectedChainInfo?.rpc || getConfiguredChainMetadata().rpcUrl;
+        if (!rpcUrl) {
+          throw new Error('RPC URL tidak tersedia untuk jaringan saat ini.');
+        }
+        provider = new ethers.JsonRpcProvider(rpcUrl);
       }
-      const tokenConfig = TOKEN_CONFIG_BY_CHAIN[chainId];
-      const coinId = mapChainIdToCoinGeckoId(chainId);
+
+      const tokenConfig = TOKEN_CONFIG_BY_CHAIN[chainId] || TOKEN_CONFIG_BY_CHAIN[selectedChain] || {};
+      const coinId = mapChainIdToCoinGeckoId(chainId || selectedChain);
 
       let balanceEth = 0;
       try {
-        const provider = new ethers.BrowserProvider(providerSource);
         const balanceWei = await provider.getBalance(walletAddress);
         balanceEth = Number(ethers.formatEther(balanceWei));
-      } catch (providerError) {
-        console.warn('BrowserProvider balance failed, fallback to eth_getBalance', providerError);
-        const balanceWeiHex = await providerSource.request({
-          method: 'eth_getBalance',
-          params: [walletAddress, 'latest'],
-        });
-        balanceEth = parseInt(balanceWeiHex, 16) / 1e18;
+      } catch (balanceError) {
+        console.warn('Failed to read balance through selected provider, trying fallback RPC:', balanceError);
+        if (providerSource && typeof providerSource.request === 'function') {
+          const balanceWeiHex = await providerSource.request({
+            method: 'eth_getBalance',
+            params: [walletAddress, 'latest'],
+          });
+          balanceEth = parseInt(balanceWeiHex, 16) / 1e18;
+        } else {
+          throw balanceError;
+        }
       }
 
       setWalletNativeBalance(balanceEth);
@@ -766,15 +783,16 @@ export default function ProfileDashboard({
 
             // Switch ke chain yang dipilih user sebelum mint
             const chosenChain = CHAIN_OPTIONS.find(c => c.id === selectedChain);
-            if (chosenChain && typeof window.ethereum !== 'undefined') {
+            const provider = getEthereumProvider();
+            if (chosenChain && provider && typeof provider.request === 'function') {
               try {
-                await window.ethereum.request({
+                await provider.request({
                   method: 'wallet_switchEthereumChain',
                   params: [{ chainId: chosenChain.hexId }],
                 });
               } catch (switchErr) {
                 if (switchErr?.code === 4902 && chosenChain.rpc) {
-                  await window.ethereum.request({
+                  await provider.request({
                     method: 'wallet_addEthereumChain',
                     params: [{
                       chainId: chosenChain.hexId,

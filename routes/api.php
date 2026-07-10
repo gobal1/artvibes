@@ -13,7 +13,6 @@ use App\Http\Controllers\API\PinController;
 use App\Models\Kategori;
 use App\Http\Controllers\TransaksiController;
 
-Route::post('/transaksi/purchase', [TransaksiController::class, 'store']);
 // Crypto Price API (no CORS issues - backend fetch)
 Route::get('/crypto/price', [PriceController::class, 'getCryptoPrice']);
 // 1. PUBLIC ROUTES (Tanpa Login)
