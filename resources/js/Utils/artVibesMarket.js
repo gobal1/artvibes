@@ -117,16 +117,18 @@ async function tryOpenDeepLinkCandidates(links = []) {
 function buildMetaMaskWalletConnectLink(uri) {
   if (!uri || typeof uri !== 'string') return null;
   const redirectUrl = encodeURIComponent(buildCurrentDappUrl());
-  const native = `metamask://wc?uri=${encodeURIComponent(uri)}&redirectUrl=${redirectUrl}`;
-  const androidIntent = `intent://wc?uri=${encodeURIComponent(uri)}&redirectUrl=${redirectUrl}#Intent;package=io.metamask;scheme=metamask;end`;
-  const universal = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}&redirectUrl=${redirectUrl}`;
+  const encodedUri = encodeURIComponent(uri);
+  const universal = `https://metamask.app.link/wc?uri=${encodedUri}&redirectUrl=${redirectUrl}`;
+  const native = `metamask://wc?uri=${encodedUri}&redirectUrl=${redirectUrl}`;
+  const browserFallback = encodeURIComponent(universal);
+  const androidIntent = `intent://wc?uri=${encodedUri}&redirectUrl=${redirectUrl}#Intent;package=io.metamask;scheme=metamask;S.browser_fallback_url=${browserFallback};end`;
 
   if (isAndroidDevice()) {
-    return [androidIntent, native, universal];
+    return [androidIntent, universal, native];
   }
 
   if (isIosDevice()) {
-    return [native, universal];
+    return [universal, native];
   }
 
   return [universal];
