@@ -4,7 +4,7 @@ import { Wallet, User, Bell, X, ShieldCheck, LogOut, Mail, Lock, ChevronDown } f
 import RhombusButton from './RhombusButton'; 
 import WalletModal from './WalletModal';
 import WalletConnectingModal from './WalletConnectingModal';
-import { connectWallet as connectWalletUtil } from '../Utils/artVibesMarket';
+import { connectWallet as connectWalletUtil, getEthereumProvider } from '../Utils/artVibesMarket';
 
 const GoogleLogo = ({ className }) => (
   <svg viewBox="0 0 533.5 544.3" className={className} aria-hidden="true">
@@ -159,7 +159,11 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
       // STEP 2: Get chain ID
       setConnectingStatus('connecting');
       setConnectingMessage('Mengecek jaringan blockchain...');
-      const chainHex = await window.ethereum.request({ method: 'eth_chainId' });
+      const provider = getEthereumProvider();
+      if (!provider) {
+        throw new Error('Provider wallet tidak tersedia setelah koneksi. Silakan muat ulang halaman.');
+      }
+      const chainHex = await provider.request({ method: 'eth_chainId' });
       const chainId = parseInt(chainHex, 16);
 
       // STEP 3: Get challenge message
@@ -188,7 +192,7 @@ export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, n
 
       let signature;
       try {
-        signature = await window.ethereum.request({
+        signature = await provider.request({
           method: 'personal_sign',
           params: [challengeData.message, walletAddress],
         });
