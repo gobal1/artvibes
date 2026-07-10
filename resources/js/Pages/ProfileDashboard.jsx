@@ -508,6 +508,8 @@ export default function ProfileDashboard({
   const getPreferredWalletAddress = useCallback(() => {
     if (globalAddress) return globalAddress.toLowerCase();
     if (auth?.user?.wallet_address) return auth.user.wallet_address.toLowerCase();
+    const provider = getEthereumProvider();
+    if (provider?.selectedAddress) return provider.selectedAddress.toLowerCase();
     if (typeof window !== 'undefined' && window.ethereum?.selectedAddress) return window.ethereum.selectedAddress.toLowerCase();
     return null;
   }, [globalAddress, auth?.user?.wallet_address]);
@@ -735,6 +737,7 @@ export default function ProfileDashboard({
 
       const response = await fetch(url, {
         method: 'POST', // WAJIB POST jika bawa file (FormData)
+        credentials: 'include',
         headers: requestHeaders, // JANGAN set Content-Type secara manual, biar browser yang atur boundary-nya!
         body: formData,
       });

@@ -142,7 +142,7 @@ export default function LoginPage({ onLoginSuccess, navigateTo }) {
         {/* Tombol Kembali ke Beranda Utama */}
         <div className="mt-8 pt-4 border-t border-slate-800/60 text-center">
           <a
-            href="/auth/google/redirect"
+            href={`${apiBaseUrl}/auth/google/redirect`}
             className="block mb-3 w-full bg-white text-slate-950 py-3.5 px-4 font-black text-xs uppercase tracking-[0.2em] border-2 border-slate-100 shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all cursor-pointer"
           >
             Login Google untuk Profil & Chat

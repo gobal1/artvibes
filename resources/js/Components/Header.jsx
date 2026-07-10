@@ -16,7 +16,7 @@ const GoogleLogo = ({ className }) => (
 );
 
 export default function Header({ toggleSidebar, sidebarOpen, sidebarPanelOpen, navigateTo, globalAddress, setGlobalAddress, isChatOpen, setIsChatOpen, auth, onLogout, onLoginSuccess }) {
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' && window.location.hostname === '127.0.0.1' && window.location.port !== '8000' ? 'http://127.0.0.1:8000' : window.location.origin);
   // --- STATE ---
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
