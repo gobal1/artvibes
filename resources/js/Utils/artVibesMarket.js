@@ -60,10 +60,11 @@ function buildCurrentDappUrl() {
 
 function openDeepLink(link) {
   if (typeof window === 'undefined' || !link) return;
+
   try {
-    window.location.href = link;
+    window.location.assign(link);
   } catch (navErr) {
-    console.info('window.location.href navigation failed', navErr);
+    console.info('window.location.assign navigation failed', navErr);
   }
 
   try {
@@ -86,24 +87,50 @@ async function tryOpenDeepLinkCandidates(links = []) {
 
     let resolved = false;
     const openedPromise = new Promise((resolve) => {
+      const cleanup = () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('pagehide', handlePageHide);
+        window.removeEventListener('blur', handleBlur);
+      };
+
       const handleVisibilityChange = () => {
         if (document.visibilityState === 'hidden') {
           resolved = true;
-          document.removeEventListener('visibilitychange', handleVisibilityChange);
+          cleanup();
+          resolve(true);
+        }
+      };
+
+      const handlePageHide = () => {
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          resolve(true);
+        }
+      };
+
+      const handleBlur = () => {
+        if (!resolved) {
+          resolved = true;
+          cleanup();
           resolve(true);
         }
       };
 
       document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('pagehide', handlePageHide);
+      window.addEventListener('blur', handleBlur);
+
       setTimeout(() => {
         if (!resolved) {
           resolved = true;
-          document.removeEventListener('visibilitychange', handleVisibilityChange);
+          cleanup();
           resolve(false);
         }
       }, 1200);
     });
 
+    console.info('Trying deep link candidate:', link);
     openDeepLink(link);
     const opened = await openedPromise;
     if (opened) {
@@ -288,8 +315,8 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
 
       const wcProvider = new WalletConnectProvider({ rpc, qrcode: false });
 
-      // When the provider emits a display URI (WalletConnect URI), open MetaMask app via universal link
-      wcProvider.on('display_uri', (uri) => {
+      // When the provider emits a display URI (WalletConnect URI), open MetaMask app via deep link
+      wcProvider.on('display_uri', async (uri) => {
         try {
           const deepLinks = buildMetaMaskWalletConnectLink(uri);
           if (!deepLinks || !Array.isArray(deepLinks) || deepLinks.length === 0) {
@@ -301,14 +328,14 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
           }
           console.log('📱 Opening MetaMask with WC URI (attempts):', deepLinks);
 
-          // Try candidates in order; stop after first assignment (navigation likely occurs)
-          for (const link of deepLinks) {
+          const opened = await tryOpenDeepLinkCandidates(deepLinks);
+          if (!opened) {
+            console.warn('MetaMask deep links did not open, falling back to universal link');
+            const fallbackLink = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
             try {
-              openDeepLink(link);
-              // give short pause — navigation will usually take over
-              break;
-            } catch (navErr) {
-              console.info('Navigation attempt failed for link', link, navErr);
+              window.location.assign(fallbackLink);
+            } catch (assignErr) {
+              console.info('Fallback assign failed', assignErr);
             }
           }
 
@@ -406,46 +433,56 @@ export async function openMetaMaskSignOnly() {
 
     const wcProvider = new WalletConnectProvider({ rpc, qrcode: false });
 
-    wcProvider.on('display_uri', async (uri) => {
-      try {
-        const deepLinks = buildMetaMaskWalletConnectLink(uri);
-        if (!deepLinks || !Array.isArray(deepLinks) || deepLinks.length === 0) throw new Error('WC URI tidak valid');
-        // Save markers so the page knows we're returning from wallet
-        sessionStorage.setItem('_wallet_connecting', 'metamask');
-        sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
-        // Keep provider around for later use
-        window.wcProvider = wcProvider;
-        console.log('📱 Opening MetaMask (sign only) attempts:', deepLinks);
+    const uriPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('WC URI timeout'));
+      }, 10000);
 
-        const opened = await tryOpenDeepLinkCandidates(deepLinks);
-        if (!opened) {
-          console.warn('MetaMask deep links did not open, falling back to universal link');
-          const fallbackLink = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
-          try {
-            window.location.assign(fallbackLink);
-          } catch (assignErr) {
-            console.info('Fallback assign failed', assignErr);
-          }
-        }
-
-        // Silent clipboard fallback
-        setTimeout(async () => {
-          try {
-            if (typeof navigator !== 'undefined' && navigator.clipboard) {
-              await navigator.clipboard.writeText(uri);
-              console.info('WC URI copied to clipboard as manual fallback');
-            }
-          } catch (copyErr) {
-            console.info('Clipboard copy failed', copyErr);
-          }
-        }, 1200);
-      } catch (e) {
-        console.warn('Gagal membangun deep link MetaMask:', e);
-      }
+      wcProvider.once('display_uri', (uri) => {
+        clearTimeout(timeout);
+        resolve(uri);
+      });
     });
 
-    // Trigger session creation which should emit display_uri
-    await wcProvider.enable();
+    const enablePromise = wcProvider.enable();
+    const uri = await uriPromise;
+
+    try {
+      const deepLinks = buildMetaMaskWalletConnectLink(uri);
+      if (!deepLinks || !Array.isArray(deepLinks) || deepLinks.length === 0) {
+        throw new Error('WC URI tidak valid');
+      }
+      sessionStorage.setItem('_wallet_connecting', 'metamask');
+      sessionStorage.setItem('_wallet_connect_time', Date.now().toString());
+      window.wcProvider = wcProvider;
+      console.log('📱 Opening MetaMask (sign only) attempts:', deepLinks);
+
+      const opened = await tryOpenDeepLinkCandidates(deepLinks);
+      if (!opened) {
+        console.warn('MetaMask deep links did not open, falling back to universal link');
+        const fallbackLink = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
+        try {
+          window.location.assign(fallbackLink);
+        } catch (assignErr) {
+          console.info('Fallback assign failed', assignErr);
+        }
+      }
+
+      setTimeout(async () => {
+        try {
+          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            await navigator.clipboard.writeText(uri);
+            console.info('WC URI copied to clipboard as manual fallback');
+          }
+        } catch (copyErr) {
+          console.info('Clipboard copy failed', copyErr);
+        }
+      }, 1200);
+    } catch (e) {
+      console.warn('Gagal membangun deep link MetaMask:', e);
+    }
+
+    await enablePromise;
 
     return true;
   } catch (err) {
