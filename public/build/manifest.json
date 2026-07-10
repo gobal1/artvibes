@@ -1,6 +1,6 @@
 {
   "node_modules/@walletconnect/web3-provider/dist/esm/index.js": {
-    "file": "assets/esm-CPFwhmh_.js",
+    "file": "assets/esm-B7x2ARj6.js",
     "name": "esm",
     "src": "node_modules/@walletconnect/web3-provider/dist/esm/index.js",
     "isDynamicEntry": true,
@@ -18,7 +18,7 @@
     "isEntry": true
   },
   "resources/js/app.jsx": {
-    "file": "assets/app-CYxom8uK.js",
+    "file": "assets/app-Db_3YFUI.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,
