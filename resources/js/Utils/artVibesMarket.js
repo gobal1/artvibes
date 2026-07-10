@@ -1,8 +1,6 @@
 import { ethers } from 'ethers';
-import { EthereumProvider } from '@walletconnect/ethereum-provider';
 
 const DEFAULT_CHAIN_ID = 137; // Polygon Mainnet
-let activeProvider = null; // Menyimpan provider yang sedang aktif (Injected atau WalletConnect)
 
 const CHAIN_METADATA = {
   137: { name: 'Polygon Mainnet', symbol: 'POL', explorer: 'https://polygonscan.com', rpcUrl: 'https://polygon-rpc.com', isTestnet: false },
@@ -13,9 +11,75 @@ const CHAIN_METADATA = {
   42161: { name: 'Arbitrum One', symbol: 'ETH', explorer: 'https://arbiscan.io', isTestnet: false },
 };
 
+const MOBILE_WALLET_DEEP_LINKS = {
+  metamask: (dappUrl) => buildMetaMaskDeepLink(dappUrl),
+  'coinbase-wallet': (dappUrl) => `https://go.cb-w.com/dapp?uri=${encodeURIComponent(dappUrl)}`,
+  trust: (dappUrl) => `https://link.trustwallet.com/open_url?uri=${encodeURIComponent(dappUrl)}`,
+};
+
+function isAndroidDevice() {
+  if (typeof navigator === 'undefined') return false;
+  return /Android/i.test(navigator.userAgent);
+}
+
+function isIosDevice() {
+  if (typeof navigator === 'undefined') return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 function isMobileDevice() {
   if (typeof navigator === 'undefined') return false;
   return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function buildMetaMaskDeepLink(dappUrl) {
+  const encoded = encodeURIComponent(dappUrl);
+  const universalLink = `https://metamask.app.link/dapp/${encoded}`;
+
+  if (isAndroidDevice()) {
+    const browserFallback = encodeURIComponent(universalLink);
+    return `intent://dapp/${encoded}#Intent;package=io.metamask;scheme=metamask;S.browser_fallback_url=${browserFallback};end`;
+  }
+
+  return universalLink;
+}
+
+function isMetaMaskMobile() {
+  if (typeof navigator === 'undefined') return false;
+  return /MetaMask/.test(navigator.userAgent) && isMobileDevice();
+}
+
+function buildCurrentDappUrl() {
+  if (typeof window === 'undefined') return '';
+  
+  const url = new URL(window.location.href);
+  
+  // Jika localhost/127.0.0.1, replace dengan domain dari .env atau ngrok/public URL
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    // Try to get public URL dari environment atau use ngrok
+    const publicUrl = import.meta.env.VITE_APP_URL || import.meta.env.VITE_PUBLIC_URL;
+    if (publicUrl) {
+      return publicUrl + window.location.pathname + window.location.search;
+    }
+    // Fallback: gunakan current pathname tapi bisa di-override di mobile
+    // Untuk mobile testing, Anda perlu setup ngrok atau use public domain
+  }
+  
+  return window.location.href;
+}
+
+export function getMobileWalletRedirectUrl(walletType = 'metamask') {
+  const builder = MOBILE_WALLET_DEEP_LINKS[walletType?.toLowerCase().replace(/\s+/g, '-')] || null;
+  if (!builder) return null;
+  return builder(buildCurrentDappUrl());
+}
+
+export function isReturningFromMobileWallet() {
+  return false;
+}
+
+export function clearMobileWalletMarkers() {
+  // No-op for current injected-provider only flow.
 }
 
 export const ART_VIBES_MARKET_ABI = [
@@ -48,11 +112,6 @@ function getConfiguredAddress(chainId) {
 function getEthereumProvider() {
   if (typeof window === 'undefined') {
     return null;
-  }
-
-  // Jika sudah terhubung lewat WalletConnect di mobile, pakai session aktifnya
-  if (activeProvider) {
-    return activeProvider;
   }
 
   const injected = window.ethereum;
@@ -89,9 +148,11 @@ export function shortenAddress(address, leading = 6, trailing = 4) {
   if (!address || typeof address !== 'string') {
     return '-';
   }
+
   if (address.length <= leading + trailing + 2) {
     return address;
   }
+
   return `${address.slice(0, leading)}...${address.slice(-trailing)}`;
 }
 
@@ -100,32 +161,21 @@ export function hasEthereumProvider() {
 }
 
 export async function connectWallet({ walletType = 'metamask' } = {}) {
-  let provider = getEthereumProvider();
-
-  // JIKA TIDAK ADA INJECTED PROVIDER (Skenario Browser Chrome HP Mobile)
+  const provider = getEthereumProvider();
   if (!provider) {
-    try {
-      const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
-      if (!projectId) {
-        throw new Error('VITE_WALLETCONNECT_PROJECT_ID belum di-set di file .env');
+    if (isMobileDevice()) {
+      const redirectUrl = getMobileWalletRedirectUrl(walletType);
+      if (redirectUrl && typeof window !== 'undefined') {
+        window.location.href = redirectUrl;
+        return null;
       }
-
-      // Inisialisasi koneksi jembatan aman untuk perangkat mobile
-      const wcProvider = await EthereumProvider.init({
-        projectId: projectId,
-        chains: [getConfiguredChainId()],
-        showQrModal: true, 
-        qrModalOptions: { themeMode: 'dark' }
-      });
-
-      // Buka modul wallet eksternal
-      await wcProvider.connect();
-      
-      activeProvider = wcProvider;
-      provider = wcProvider;
-    } catch (error) {
-      throw new Error(`Gagal terhubung ke Mobile Wallet: ${error.message}`);
+      throw new Error(
+        'MetaMask tidak tersedia di browser ini. Pastikan MetaMask mobile terpasang dan coba lagi.'
+      );
     }
+    throw new Error(
+      'Wallet tidak ditemukan. Pasang ekstensi MetaMask di desktop atau buka situs ini di browser MetaMask mobile.'
+    );
   }
 
   try {
@@ -145,7 +195,7 @@ export async function connectWallet({ walletType = 'metamask' } = {}) {
 export async function ensureCorrectNetwork(expectedChainId = getConfiguredChainId()) {
   const provider = getEthereumProvider();
   if (!provider) {
-    throw new Error('Wallet belum terpasang atau belum aktif di browser ini.');
+    throw new Error('MetaMask belum terpasang atau belum aktif di browser ini.');
   }
 
   const currentHex = await provider.request({ method: 'eth_chainId' });
@@ -153,6 +203,7 @@ export async function ensureCorrectNetwork(expectedChainId = getConfiguredChainI
 
   if (currentDec !== expectedChainId) {
     const targetHex = `0x${expectedChainId.toString(16)}`;
+
     try {
       await provider.request({
         method: 'wallet_switchEthereumChain',
@@ -166,6 +217,10 @@ export async function ensureCorrectNetwork(expectedChainId = getConfiguredChainI
 }
 
 export async function requireWalletAccess(expectedChainId) {
+  if (!hasEthereumProvider()) {
+    throw new Error('MetaMask belum terpasang atau belum aktif di browser ini.');
+  }
+
   await connectWallet();
   await ensureCorrectNetwork(expectedChainId);
 }
@@ -179,7 +234,7 @@ export async function getMarketContractWithSigner(expectedChainId) {
 
   const balance = await provider.getBalance(account);
   if (balance <= 0n) {
-    throw new Error('Saldo POL di MetaMask kosong. Isi POL Mainnet dulu sebelum transaksi on-chain.');
+    throw new Error('Saldo POL di MetaMask kosong. Isi POL Mainnet dulu sebelum mint atau transaksi on-chain.');
   }
 
   const contractAddress = getConfiguredAddress(expectedChainId);
@@ -209,7 +264,10 @@ export async function getMarketContractReadOnly() {
 }
 
 async function getGasOptions(provider) {
-  if (!provider) return {};
+  if (!provider) {
+    return {};
+  }
+
   const feeData = await provider.getFeeData();
   const options = {};
 
@@ -219,12 +277,14 @@ async function getGasOptions(provider) {
   } else if (feeData.gasPrice) {
     options.gasPrice = feeData.gasPrice;
   }
+
   return options;
 }
 
 export async function getListingState(tokenId) {
   const { contract } = await getMarketContractReadOnly();
   const listing = await contract.getListing(tokenId);
+
   return {
     seller: listing.seller ?? listing[0],
     priceWei: listing.price ?? listing[1],
@@ -238,7 +298,10 @@ export async function getTokenOwner(tokenId) {
 }
 
 export async function buyListedToken(tokenId, fallbackPricePol, expectedChainId) {
-  const { provider, contract } = await getMarketContractWithSigner(expectedChainId);
+  const { provider, contract, account } = await getMarketContractWithSigner(expectedChainId);
+
+  console.log('🛒 Memulai pembelian NFT...');
+  
   let valueWei;
   try {
     const listing = await contract.getListing(tokenId);
@@ -284,7 +347,10 @@ export async function cancelListingOnChain(tokenId, expectedChainId) {
 }
 
 export async function mintNftOnChain(metadataURI, initialPricePol, listNow = false, expectedChainId) {
-  if (!metadataURI) throw new Error('metadataURI wajib diisi');
+  if (!metadataURI) {
+    throw new Error('metadataURI wajib diisi');
+  }
+
   const startingPrice = Number(initialPricePol);
   if (!Number.isFinite(startingPrice) || startingPrice <= 0) {
     throw new Error('Harga mint harus lebih besar dari 0. Masukkan harga dalam POL.');
@@ -292,6 +358,7 @@ export async function mintNftOnChain(metadataURI, initialPricePol, listNow = fal
 
   const { provider, contract, contractAddress } = await getMarketContractWithSigner(expectedChainId);
   const initialPriceWei = ethers.parseEther(String(initialPricePol));
+
   const txOptions = await getGasOptions(provider);
   let tx;
   try {
@@ -315,21 +382,20 @@ export async function mintNftOnChain(metadataURI, initialPricePol, listNow = fal
       // Ignore unrelated logs
     }
   }
+
   return { txHash: tx.hash, receipt, tokenId, contractAddress };
 }
 
 export async function listTokenOnChain(tokenId, pricePol, expectedChainId) {
   const { provider, contract } = await getMarketContractWithSigner(expectedChainId);
   const priceWei = ethers.parseEther(String(pricePol || 0));
-  if (priceWei <= 0n) throw new Error('Harga listing harus lebih besar dari 0');
+
+  if (priceWei <= 0n) {
+    throw new Error('Harga listing harus lebih besar dari 0');
+  }
 
   const txOptions = await getGasOptions(provider);
   const tx = await contract.listToken(tokenId, priceWei, txOptions);
   const receipt = await tx.wait();
   return { txHash: tx.hash, receipt };
 }
-
-// Menjaga kompatibilitas sisa fungsi lama agar tidak break di halaman lain
-export function getMobileWalletRedirectUrl() { return null; }
-export function isReturningFromMobileWallet() { return false; }
-export function clearMobileWalletMarkers() { }
