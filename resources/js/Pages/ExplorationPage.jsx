@@ -37,6 +37,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
   const [onAuction, setOnAuction] = useState(false);
   const [notForSale, setNotForSale] = useState(false);
   const [minPol, setMinPol] = useState('');
+  const [isBuying, setIsBuying] = useState(false);
   const [maxPol, setMaxPol] = useState('');
   const [assetType, setAssetType] = useState('pure');
   const [orientationFilters, setOrientationFilters] = useState({
@@ -626,8 +627,6 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
     console.log(`   - Price: ${priceRaw}`);
 
     try {
-      await requireWalletAccess();
-
       if (!Number.isInteger(tokenId) || tokenId <= 0) {
         alert('NFT ini belum di-mint ke blockchain. Mint dulu dari dashboard creator agar transaksi buy bisa diproses.');
         return;
@@ -647,12 +646,14 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
           console.error("Data NFT tidak memiliki idproduk:", nft);
           return;
       }
-        if (!buyerId) {
+      if (!buyerId) {
           alert('Silahkan login terlebih dahulu, setelah itu baru bisa melakukan pembelian.');
           return;
-        }
+      }
 
       console.log('🔄 === MEMULAI PROSES PEMBELIAN DI BLOCKCHAIN ===');
+      setIsBuying(true);
+      await requireWalletAccess();
       // 3. Jalankan transaksi via MetaMask
       const result = await buyListedToken(tokenId, priceRaw);
       
@@ -718,6 +719,8 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
         : `⚠️ Pembelian belum berhasil. Silakan coba lagi dalam beberapa saat.`;
 
       alert(friendlyMsg);
+    } finally {
+      setIsBuying(false);
     }
 };
 
@@ -1105,9 +1108,10 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                                       </button>
                                       <button
                                         onClick={() => handleBuyNft(item)}
-                                        className="flex-1 font-black text-[10px] uppercase tracking-wider py-1.5 px-2 border-2 bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 cursor-pointer transition"
+                                        disabled={buyDisabled || isBuying}
+                                        className="flex-1 font-black text-[10px] uppercase tracking-wider py-1.5 px-2 border-2 bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 cursor-pointer transition disabled:cursor-not-allowed disabled:opacity-70"
                                       >
-                                        Go buy
+                                        {isBuying ? 'Processing…' : 'Go buy'}
                                       </button>
 
                                       <button

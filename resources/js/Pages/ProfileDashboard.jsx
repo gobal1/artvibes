@@ -1200,7 +1200,7 @@ export default function ProfileDashboard({
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-5 xl:pr-20 w-full flex-1 my-5 space-y-4 pb-36 md:pb-28 xl:pb-0">
+      <main className="max-w-7xl mx-auto px-4 sm:px-5 xl:pr-20 w-full flex-1 my-5 space-y-4 pb-56 md:pb-48 xl:pb-0">
         <aside className="hidden xl:flex fixed inset-y-0 right-0 z-30 h-dvh min-h-dvh w-14 flex-col items-center justify-between border-l border-white/10 bg-slate-950 p-3 shadow-[0_35px_60px_-30px_rgba(0,0,0,0.8)]">
           <div className="space-y-2 text-center pt-6">
             <div className="text-[9px] uppercase tracking-[0.45em] text-emerald-400 font-mono">Aksi</div>
