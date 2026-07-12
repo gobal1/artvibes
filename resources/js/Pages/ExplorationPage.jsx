@@ -608,6 +608,11 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
   }, [yearFilterOpen]);
 
   const handleBuyNft = async (nft) => {
+    if (!isLoggedIn) {
+      alert('Silakan login terlebih dahulu untuk membeli NFT ini.');
+      return;
+    }
+
     console.log('📦 === PRODUK DIPILIH ===');
     console.log('Struktur nft:', JSON.stringify(nft, null, 2));
     
@@ -1097,7 +1102,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                                     </div>
 
                                     <div className="flex items-center gap-1 border-t border-neutral-100 pt-2 w-full">
-                                      <button
+                                              <button
                                         onClick={() => navigateTo('product-detail', item)}
                                         className="flex-1 bg-neutral-950 hover:bg-neutral-800 text-white font-black text-[10px] uppercase tracking-wider py-1.5 px-2 border-2 border-neutral-950 text-center transition cursor-pointer"
                                       >
@@ -1105,10 +1110,9 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                                       </button>
                                       <button
                                         onClick={() => handleBuyNft(item)}
-                                        disabled={buyDisabled}
-                                        className={`flex-1 font-black text-[10px] uppercase tracking-wider py-1.5 px-2 border-2 text-center transition ${buyDisabled ? 'bg-neutral-200 border-neutral-300 text-neutral-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 cursor-pointer'}`}
+                                        className="flex-1 font-black text-[10px] uppercase tracking-wider py-1.5 px-2 border-2 bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 cursor-pointer transition"
                                       >
-                                        {getBuyStateLabel(item)}
+                                        Go buy
                                       </button>
 
                                       <button
