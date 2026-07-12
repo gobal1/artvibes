@@ -94,7 +94,8 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
   };
 
   const getBuyStateLabel = (product) => {
-    const listingState = listingStateByProduct[product.idproduk];
+    const key = product.idproduk ?? product.id ?? '';
+    const listingState = key ? listingStateByProduct[key] : null;
     if (!listingState) return 'Cek Listing...';
     if (listingState.active) return 'Go buy';
     if (listingState.status === 'unlinked') return 'Belum Mint';
@@ -193,22 +194,25 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
       const nextState = {};
 
       for (const product of products) {
+        const key = product.idproduk ?? product.id ?? '';
         const tokenId = getProductTokenId(product);
-        if (!tokenId) {
-          nextState[product.idproduk] = { status: 'unlinked', active: false };
+        if (!tokenId || !key) {
+          if (key) {
+            nextState[key] = { status: 'unlinked', active: false };
+          }
           continue;
         }
 
         try {
           const listing = await getListingState(tokenId);
-          nextState[product.idproduk] = {
+          nextState[key] = {
             status: listing.active ? 'active' : 'inactive',
             active: Boolean(listing.active),
             seller: listing.seller,
             priceWei: listing.priceWei?.toString?.() ?? String(listing.priceWei ?? ''),
           };
         } catch (error) {
-          nextState[product.idproduk] = {
+          nextState[key] = {
             status: 'inactive',
             active: false,
             error: error?.message || 'Gagal membaca listing on-chain',
@@ -1121,17 +1125,17 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                                       </button>
 
                                       <button
-                                        onClick={(e) => toggleLike(e, item.idproduk)}
+                                        onClick={(e) => toggleLike(e, item.idproduk ?? item.id)}
                                         className={`p-1.5 border-2 border-neutral-950 transition cursor-pointer flex items-center justify-center h-7 w-7 shrink-0 ${isLiked ? 'bg-red-50 text-red-600 border-neutral-950' : 'bg-white text-neutral-400 hover:text-neutral-900'}`}
                                       >
                                         <Heart className={`h-3.5 w-3.5 ${isLiked ? 'fill-current' : ''}`} />
                                       </button>
                                       <button
-                                        onClick={(e) => togglePin(e, item.idproduk)}
+                                        onClick={(e) => togglePin(e, item.idproduk ?? item.id)}
                                         className={`p-1.5 border-2 transition cursor-pointer flex items-center justify-center h-7 w-7 shrink-0 ${pinnedProducts.includes(normalizedItemId) ? 'bg-emerald-50 text-emerald-700 border-emerald-700' : 'bg-white text-neutral-400 border-neutral-950 hover:text-neutral-900'}`}
                                         title={pinnedProducts.includes(normalizedItemId) ? 'Batal sematkan' : 'Sematkan'}
                                       >
-                                        <Bookmark className={`h-3.5 w-3.5 ${pinnedProducts.includes(item.idproduk) ? 'fill-current' : ''}`} />
+                                        <Bookmark className={`h-3.5 w-3.5 ${pinnedProducts.includes(normalizedItemId) ? 'fill-current' : ''}`} />
                                       </button>
                                     </div>
                                   </div>
