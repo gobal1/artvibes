@@ -17,6 +17,7 @@ import {
   Bookmark,
   Share2,
   Volume2,
+  SlidersHorizontal,
   CalendarDays
 } from 'lucide-react';
 import Footer from '../Components/Footer';
@@ -30,6 +31,22 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarPanelOpen, setSidebarPanelOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [selectedPanelCategory, setSelectedPanelCategory] = useState('Digital Art');
+  const [buyNow, setBuyNow] = useState(false);
+  const [onAuction, setOnAuction] = useState(false);
+  const [notForSale, setNotForSale] = useState(false);
+  const [minPol, setMinPol] = useState('');
+  const [maxPol, setMaxPol] = useState('');
+  const [assetType, setAssetType] = useState('pure');
+  const [orientationFilters, setOrientationFilters] = useState({
+    square: false,
+    portrait: false,
+    landscape: false,
+    panoramic: false,
+  });
+  const [resolution, setResolution] = useState('all');
+  const [sortOption, setSortOption] = useState('Terbaru');
   
   const [selectedNft, setSelectedNft] = useState(null);
   const [likedProducts, setLikedProducts] = useState([]); // Store liked product IDs from database
@@ -464,6 +481,14 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
     { id: 'row-art-vertical', label: '🧱 Art Vertical' },
   ];
 
+  const panelCategories = [
+    { label: 'Digital Art', count: 1204 },
+    { label: 'Photography', count: 843 },
+    { label: '3D Object', count: 124 },
+    { label: 'Music & Audio', count: 55 },
+    { label: 'Game Items', count: 89 },
+  ];
+
   const allRows = [
     { id: 'row-new', title: '⚡ Baru Dirilis', desc: 'Karya seni digital terhangat yang baru saja dicetak' },
     { id: 'row-trending', title: '🔥 Karya Paling Populer', desc: 'Karya seni digital yang paling banyak dicari minggu ini' },
@@ -697,25 +722,22 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
 };
 
   return (
-    <div className="w-full min-h-screen bg-white text-neutral-900 flex flex-col justify-between font-sans antialiased relative">
-      <main className="max-w-7xl mx-auto px-4 sm:px-5 lg:px-6 w-full flex-1 space-y-7 my-4 sm:my-6">
+    <div className="w-full min-h-screen bg-white text-neutral-900 flex flex-col justify-start lg:justify-between font-sans antialiased relative">
+      <main className="w-full px-0 sm:px-5 lg:px-0 flex-1 min-h-0 space-y-7 my-4 sm:my-6 pb-0">
         
         {/* AREA ATAS: Navigasi Premium & Search Bar */}
-        <div className="flex flex-col gap-4 border-b border-neutral-200 pb-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            
+        <div className="flex flex-col gap-2 border-b border-neutral-200 pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <a 
               href="/"
-              className="text-neutral-900 hover:text-neutral-600 cursor-pointer text-xs sm:text-sm font-bold tracking-wide uppercase transition self-start md:self-auto no-underline"
+              className="text-neutral-900 hover:text-neutral-600 cursor-pointer text-[10px] sm:text-[11px] font-black tracking-widest uppercase transition self-start sm:self-auto no-underline"
             >
               ← Kembali ke Beranda Utama
             </a>
-
-            <div className="w-full md:w-auto md:ml-auto flex flex-col sm:flex-row sm:items-center gap-2">
-              {/* SEARCH BAR */}
-              <div className="relative w-full sm:w-85 lg:w-105">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-400">
-                  <Search className="h-4 w-4" />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-[26rem]">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
+                  <Search className="h-3.5 w-3.5" />
                 </div>
                 <input
                   type="text"
@@ -725,94 +747,102 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                     setSearchQuery(e.target.value);
                     scrollToProductsSection();
                   }}
-                  className="w-full pl-10 pr-9 py-2.5 bg-neutral-50 text-neutral-900 placeholder-neutral-500 border border-neutral-300 rounded-xl focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition text-sm"
+                  className="w-full pl-10 pr-9 py-2 bg-neutral-50 text-neutral-900 placeholder-neutral-500 border border-neutral-300 rounded-xl focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition text-sm"
                 />
                 {searchQuery && (
                   <button 
                     onClick={() => setSearchQuery('')}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 hover:text-neutral-900 cursor-pointer border-none bg-transparent"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-neutral-400 hover:text-neutral-900 cursor-pointer border-none bg-transparent"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 )}
               </div>
 
-              {/* YEAR FILTER: SINGLE DROPDOWN BUTTON */}
-              <div className="relative" ref={yearFilterRef}>
-                <button
-                  type="button"
-                  onClick={() => setYearFilterOpen((prev) => !prev)}
-                  className={`inline-flex items-center justify-between h-10 min-w-40 px-3 border-2 rounded-xl text-xs font-bold uppercase tracking-wider transition ${yearFilterOpen ? 'bg-neutral-950 text-white border-neutral-950' : 'bg-white text-neutral-900 border-neutral-300 hover:border-neutral-900'}`}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4" />
-                    {selectedYear === 'all' ? 'Semua Tahun' : selectedYear}
-                  </span>
-                  <ChevronDown className={`h-3.5 w-3.5 transition ${yearFilterOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {yearFilterOpen && (
-                  <div className="absolute right-0 mt-2 w-44 bg-white border-2 border-neutral-950 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-lg z-30 overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedYear('all');
-                        setYearFilterOpen(false);
-                        scrollToProductsSection();
-                      }}
-                      className={`w-full text-left px-3 py-2 text-[11px] font-black uppercase tracking-wider transition ${selectedYear === 'all' ? 'bg-neutral-950 text-white' : 'text-neutral-800 hover:bg-neutral-50'}`}
-                    >
-                      Semua Tahun
-                    </button>
-                    {availableYears.map((year) => (
+              <div className="flex gap-2 items-center w-full sm:w-auto">
+                <div className="relative flex-1 min-w-0" ref={yearFilterRef}>
+                  <button
+                    type="button"
+                    onClick={() => setYearFilterOpen((prev) => !prev)}
+                    className={`inline-flex items-center justify-between h-9 w-full px-3 border-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition ${yearFilterOpen ? 'bg-neutral-950 text-white border-neutral-950' : 'bg-white text-neutral-900 border-neutral-300 hover:border-neutral-900'}`}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4" />
+                      {selectedYear === 'all' ? 'Semua Tahun' : selectedYear}
+                    </span>
+                    <ChevronDown className={`h-3.5 w-3.5 transition ${yearFilterOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {yearFilterOpen && (
+                    <div className="absolute right-0 mt-2 w-44 bg-white border-2 border-neutral-950 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-lg z-30 overflow-hidden">
                       <button
-                        key={year}
                         type="button"
                         onClick={() => {
-                          setSelectedYear(year);
+                          setSelectedYear('all');
                           setYearFilterOpen(false);
                           scrollToProductsSection();
                         }}
-                        className={`w-full text-left px-3 py-2 text-[11px] font-black uppercase tracking-wider border-t border-neutral-200 transition ${selectedYear === year ? 'bg-emerald-700 text-white border-emerald-700' : 'text-neutral-800 hover:bg-neutral-50'}`}
+                        className={`w-full text-left px-3 py-2 text-[11px] font-black uppercase tracking-wider transition ${selectedYear === 'all' ? 'bg-neutral-950 text-white' : 'text-neutral-800 hover:bg-neutral-50'}`}
                       >
-                        {year}
+                        Semua Tahun
                       </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      {availableYears.map((year) => (
+                        <button
+                          key={year}
+                          type="button"
+                          onClick={() => {
+                            setSelectedYear(year);
+                            setYearFilterOpen(false);
+                            scrollToProductsSection();
+                          }}
+                          className={`w-full text-left px-3 py-2 text-[11px] font-black uppercase tracking-wider border-t border-neutral-200 transition ${selectedYear === year ? 'bg-emerald-700 text-white border-emerald-700' : 'text-neutral-800 hover:bg-neutral-50'}`}
+                        >
+                          {year}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-              {/* VOICE ON/OFF TOGGLE */}
-              <div className="relative">
+                <div className="relative flex-1 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setVoiceSettingsOpen((prev) => !prev)}
+                    className={`inline-flex items-center justify-between h-9 w-full px-3 border-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition ${voiceSettingsOpen ? 'bg-neutral-950 text-white border-neutral-950' : 'bg-white text-neutral-900 border-neutral-300 hover:border-neutral-900'}`}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Volume2 className="h-4 w-4" />
+                      Voice {voiceEnabled ? 'On' : 'Off'}
+                    </span>
+                    <ChevronDown className={`h-3.5 w-3.5 transition ${voiceSettingsOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {voiceSettingsOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-neutral-200 shadow-lg rounded-xl z-20">
+                      <div className="p-3 text-xs uppercase tracking-widest text-neutral-500 border-b border-neutral-200">Voice Settings</div>
+                      <button
+                        type="button"
+                        onClick={() => setVoiceEnabled(true)}
+                        className={`w-full text-left px-4 py-3 text-sm ${voiceEnabled ? 'bg-neutral-950 text-white' : 'text-neutral-800 hover:bg-neutral-50'}`}
+                      >
+                        On
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVoiceEnabled(false)}
+                        className={`w-full text-left px-4 py-3 text-sm ${!voiceEnabled ? 'bg-neutral-950 text-white' : 'text-neutral-800 hover:bg-neutral-50'}`}
+                      >
+                        Off
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <button
                   type="button"
-                  onClick={() => setVoiceSettingsOpen((prev) => !prev)}
-                  className={`inline-flex items-center justify-between h-10 min-w-28 px-3.5 border-2 rounded-xl text-sm transition ${voiceSettingsOpen ? 'bg-neutral-950 text-white border-neutral-950' : 'bg-white text-neutral-900 border-neutral-300 hover:border-neutral-900'}`}
+                  onClick={() => setPanelOpen((prev) => !prev)}
+                  className={`inline-flex items-center justify-center h-9 px-3 border-2 rounded-xl text-[11px] font-black uppercase tracking-wider gap-2 transition ${panelOpen ? 'bg-neutral-950 text-white border-neutral-950' : 'bg-white text-neutral-900 border-neutral-300 hover:border-neutral-900 hover:bg-neutral-50'}`}
                 >
-                  <span className="inline-flex items-center gap-2">
-                    <Volume2 className="h-4 w-4" />
-                    Voice {voiceEnabled ? 'On' : 'Off'}
-                  </span>
-                  <ChevronDown className={`h-3.5 w-3.5 transition ${voiceSettingsOpen ? 'rotate-180' : ''}`} />
+                  <SlidersHorizontal className="h-4 w-4" />
+                  {panelOpen ? 'Sembunyikan' : 'Tampilkan'} Panel
                 </button>
-                {voiceSettingsOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-neutral-200 shadow-lg rounded-xl z-20">
-                    <div className="p-3 text-xs uppercase tracking-widest text-neutral-500 border-b border-neutral-200">Voice Settings</div>
-                    <button
-                      type="button"
-                      onClick={() => setVoiceEnabled(true)}
-                      className={`w-full text-left px-4 py-3 text-sm ${voiceEnabled ? 'bg-neutral-950 text-white' : 'text-neutral-800 hover:bg-neutral-50'}`}
-                    >
-                      On
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setVoiceEnabled(false)}
-                      className={`w-full text-left px-4 py-3 text-sm ${!voiceEnabled ? 'bg-neutral-950 text-white' : 'text-neutral-800 hover:bg-neutral-50'}`}
-                    >
-                      Off
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -899,10 +929,12 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
             <p className="text-sm text-neutral-500 mt-1">Coba kata kunci lain untuk "{searchQuery}"</p>
           </div>
         ) : (
-          <>
-            {rowsToRender.map((row, rowIndex) => {
-              // Distribusi produk ke setiap row agar tidak ada duplikat saat kategori 'all'
-              let rowItems = visibleProducts;
+          <div className="flex-1 min-h-0 flex flex-col gap-6 lg:flex-row lg:overflow-hidden transition-all duration-500 ease-in-out">
+            <section className={`w-full transition-all duration-500 ease-in-out ${panelOpen ? 'lg:w-3/4' : 'lg:w-full'} flex flex-col h-full min-h-0 overflow-hidden`}>
+              <div className="flex-1 h-full min-h-0 overflow-y-auto space-y-6 pr-0 lg:pr-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                {rowsToRender.map((row, rowIndex) => {
+                  // Distribusi produk ke setiap row agar tidak ada duplikat saat kategori 'all'
+                  let rowItems = visibleProducts;
 
               if (useYearRows && row.year) {
                 rowItems = visibleProducts.filter((item) => String(extractProductYear(item)) === String(row.year));
@@ -1003,106 +1035,100 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                             style={!isSpecialFilter ? { scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } : {}}
                           >
                             {segmentItems.map((item, idx) => {
-                      const itemRowId = item.rowId || row.id;
-                      const itemIndex = item.index !== undefined ? item.index : idx;
-                      
-                      const uniqueId = item.uniqueId || `${itemRowId}-${item.idproduk}`;
-                      const computedPrice = item.computedPrice || `${item.price_crypto || 0} ${nativeSymbol}`;
-                      const titleText = item.titleText || item.title || `Digital Art ${itemIndex + 1}`;
-                      
-                      // Format image URL dengan /storage/ prefix
-                      let finalImageUrl = '/images/default-art.jpg';
-                      if (item.image_url && item.image_url !== 'default.jpg') {
-                        finalImageUrl = item.image_url.startsWith('/storage/') 
-                          ? item.image_url 
-                          : `/storage/${item.image_url}`;
-                      }
+                              const itemRowId = item.rowId || row.id;
+                              const itemIndex = item.index !== undefined ? item.index : idx;
 
-                      const isLiked = likedProducts.includes(item.idproduk);
-                      const listingState = listingStateByProduct[item.idproduk];
-                      const buyDisabled = !listingState || !listingState.active;
+                              const uniqueId = item.uniqueId || `${itemRowId}-${item.idproduk}`;
+                              const computedPrice = item.computedPrice || `${item.price_crypto || 0} ${nativeSymbol}`;
+                              const titleText = item.titleText || item.title || `Digital Art ${itemIndex + 1}`;
 
-                      return (
-                        <div 
-                          key={`${uniqueId}-${segmentId}-${idx}`} 
-                          className="min-w-55 max-w-55 sm:min-w-59 sm:max-w-59 bg-white border-2 border-neutral-950 p-2.5 sm:p-3 snap-start hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition duration-300 transform shadow-md relative group flex flex-col justify-between rounded-lg"
-                        >
-                          {/* KLIK KARTU UNTUK MEMBUKA MODAL QUICK VIEW */}
-                          <div 
-                            onClick={() => openQuickView(item)}
-                            className="overflow-hidden bg-neutral-100 border border-neutral-200 aspect-4/3 relative cursor-pointer"
-                          >
-                            <img 
-                              src={finalImageUrl} 
-                              alt={titleText} 
-                              className="w-full h-full object-cover transition duration-500 group-hover:scale-105" 
-                            />
-                            <div className="absolute inset-0 bg-neutral-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                              <span className="bg-white border-2 border-neutral-950 font-black text-[10px] px-2.5 py-1 uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                                Detail Singkat
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="mt-3 border-t border-neutral-200 pt-2.5 flex flex-col justify-between flex-1">
-                            <div>
-                              <h3 className="font-bold text-neutral-900 text-sm truncate tracking-wide">
-                                {titleText}
-                              </h3>
-                              <div className="mt-1 flex items-center justify-between text-[11px] mb-2.5">
-                                <span className="text-neutral-500 font-medium">Value</span>
-                                <span className="text-neutral-900 font-extrabold font-mono tracking-tight">{computedPrice}</span>
-                              </div>
-                            </div>
+                              let finalImageUrl = '/images/default-art.jpg';
+                              if (item.image_url && item.image_url !== 'default.jpg') {
+                                finalImageUrl = item.image_url.startsWith('/storage/')
+                                  ? item.image_url
+                                  : `/storage/${item.image_url}`;
+                              }
 
-                            <div className="flex items-center gap-1.5 border-t border-neutral-100 pt-2 w-full mb-1.5">
-                              <div className="text-[11px] text-neutral-600 flex-1 truncate">
-                                <span className="text-neutral-500">By: </span>
-                                <span className="font-bold text-neutral-900">{item.user?.name || 'Anonymous'}</span>
-                              </div>
-                              <span className={`text-[10px] font-black uppercase tracking-wide ${listingState?.active ? 'text-emerald-700' : 'text-amber-700'}`}>
-                                {listingState?.active ? 'Listed Aktif' : getBuyStateLabel(item)}
-                              </span>
-                            </div>
+                              const isLiked = likedProducts.includes(item.idproduk);
+                              const listingState = listingStateByProduct[item.idproduk];
+                              const buyDisabled = !listingState || !listingState.active;
 
-                            <div className="flex items-center gap-1 border-t border-neutral-100 pt-2 w-full">
-                              <button 
-                                onClick={() => navigateTo('product-detail', item)}
-                                className="flex-1 bg-neutral-950 hover:bg-neutral-800 text-white font-black text-[10px] uppercase tracking-wider py-1.5 px-2 border-2 border-neutral-950 text-center transition cursor-pointer"
-                              >
-                                About➤ 
-                              </button>
-                              <button 
-                                onClick={() => handleBuyNft(item)}
-                                disabled={buyDisabled}
-                                className={`flex-1 font-black text-[10px] uppercase tracking-wider py-1.5 px-2 border-2 text-center transition ${buyDisabled ? 'bg-neutral-200 border-neutral-300 text-neutral-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 cursor-pointer'}`}
-                              >
-                                {getBuyStateLabel(item)}
-                              </button>
-                              
-                              <button 
-                                onClick={(e) => toggleLike(e, item.idproduk)}
-                                className={`p-1.5 border-2 border-neutral-950 transition cursor-pointer flex items-center justify-center h-7 w-7 shrink-0 ${
-                                  isLiked ? 'bg-red-50 text-red-600 border-neutral-950' : 'bg-white text-neutral-400 hover:text-neutral-900'
-                                }`}
-                              >
-                                <Heart className={`h-3.5 w-3.5 ${isLiked ? 'fill-current' : ''}`} />
-                              </button>
-                              <button 
-                                onClick={(e) => togglePin(e, item.idproduk)}
-                                className={`p-1.5 border-2 transition cursor-pointer flex items-center justify-center h-7 w-7 shrink-0 ${
-                                  pinnedProducts.includes(item.idproduk) ? 'bg-emerald-50 text-emerald-700 border-emerald-700' : 'bg-white text-neutral-400 border-neutral-950 hover:text-neutral-900'
-                                }`}
-                                title={pinnedProducts.includes(item.idproduk) ? 'Batal sematkan' : 'Sematkan'}
-                              >
-                                <Bookmark className={`h-3.5 w-3.5 ${pinnedProducts.includes(item.idproduk) ? 'fill-current' : ''}`} />
-                              </button>
-                            </div>
-                          </div>
+                              return (
+                                <div
+                                  key={`${uniqueId}-${segmentId}-${idx}`}
+                                  className="min-w-55 max-w-55 sm:min-w-59 sm:max-w-59 bg-white border-2 border-neutral-950 p-2.5 sm:p-3 snap-start hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition duration-300 transform shadow-md relative group flex flex-col justify-between rounded-lg"
+                                >
+                                  {/* KLIK KARTU UNTUK MEMBUKA MODAL QUICK VIEW */}
+                                  <div
+                                    onClick={() => openQuickView(item)}
+                                    className="overflow-hidden bg-neutral-100 border border-neutral-200 aspect-4/3 relative cursor-pointer"
+                                  >
+                                    <img
+                                      src={finalImageUrl}
+                                      alt={titleText}
+                                      className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
+                                    />
+                                    <div className="absolute inset-0 bg-neutral-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                      <span className="bg-white border-2 border-neutral-950 font-black text-[10px] px-2.5 py-1 uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                        Detail Singkat
+                                      </span>
+                                    </div>
+                                  </div>
 
-                        </div>
-                            );
-                          })}
+                                  <div className="mt-3 border-t border-neutral-200 pt-2.5 flex flex-col justify-between flex-1">
+                                    <div>
+                                      <h3 className="font-bold text-neutral-900 text-sm truncate tracking-wide">
+                                        {titleText}
+                                      </h3>
+                                      <div className="mt-1 flex items-center justify-between text-[11px] mb-2.5">
+                                        <span className="text-neutral-500 font-medium">Value</span>
+                                        <span className="text-neutral-900 font-extrabold font-mono tracking-tight">{computedPrice}</span>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5 border-t border-neutral-100 pt-2 w-full mb-1.5">
+                                      <div className="text-[11px] text-neutral-600 flex-1 truncate">
+                                        <span className="text-neutral-500">By: </span>
+                                        <span className="font-bold text-neutral-900">{item.user?.name || 'Anonymous'}</span>
+                                      </div>
+                                      <span className={`text-[10px] font-black uppercase tracking-wide ${listingState?.active ? 'text-emerald-700' : 'text-amber-700'}`}>
+                                        {listingState?.active ? 'Listed Aktif' : getBuyStateLabel(item)}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-1 border-t border-neutral-100 pt-2 w-full">
+                                      <button
+                                        onClick={() => navigateTo('product-detail', item)}
+                                        className="flex-1 bg-neutral-950 hover:bg-neutral-800 text-white font-black text-[10px] uppercase tracking-wider py-1.5 px-2 border-2 border-neutral-950 text-center transition cursor-pointer"
+                                      >
+                                        About➤
+                                      </button>
+                                      <button
+                                        onClick={() => handleBuyNft(item)}
+                                        disabled={buyDisabled}
+                                        className={`flex-1 font-black text-[10px] uppercase tracking-wider py-1.5 px-2 border-2 text-center transition ${buyDisabled ? 'bg-neutral-200 border-neutral-300 text-neutral-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 cursor-pointer'}`}
+                                      >
+                                        {getBuyStateLabel(item)}
+                                      </button>
+
+                                      <button
+                                        onClick={(e) => toggleLike(e, item.idproduk)}
+                                        className={`p-1.5 border-2 border-neutral-950 transition cursor-pointer flex items-center justify-center h-7 w-7 shrink-0 ${isLiked ? 'bg-red-50 text-red-600 border-neutral-950' : 'bg-white text-neutral-400 hover:text-neutral-900'}`}
+                                      >
+                                        <Heart className={`h-3.5 w-3.5 ${isLiked ? 'fill-current' : ''}`} />
+                                      </button>
+                                      <button
+                                        onClick={(e) => togglePin(e, item.idproduk)}
+                                        className={`p-1.5 border-2 transition cursor-pointer flex items-center justify-center h-7 w-7 shrink-0 ${pinnedProducts.includes(item.idproduk) ? 'bg-emerald-50 text-emerald-700 border-emerald-700' : 'bg-white text-neutral-400 border-neutral-950 hover:text-neutral-900'}`}
+                                        title={pinnedProducts.includes(item.idproduk) ? 'Batal sematkan' : 'Sematkan'}
+                                      >
+                                        <Bookmark className={`h-3.5 w-3.5 ${pinnedProducts.includes(item.idproduk) ? 'fill-current' : ''}`} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       );
@@ -1123,9 +1149,164 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                 </button>
               </div>
             )}
-          </>
+          </div>
+        </section>
+
+          <aside className={`overflow-hidden transition-all duration-500 ease-in-out fixed inset-x-0 bottom-0 z-40 h-[55vh] w-full ${panelOpen ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-full opacity-0 pointer-events-none'} lg:static lg:inset-auto lg:bottom-auto lg:z-auto lg:h-auto ${panelOpen ? 'lg:block lg:w-1/4 lg:opacity-100 lg:pointer-events-auto lg:translate-y-0' : 'lg:hidden'}`}>
+            <div className={`h-full overflow-hidden rounded-t-[1.75rem] border-t border-neutral-200 bg-white shadow-[0_-20px_60px_rgba(0,0,0,0.16)] lg:rounded-4xl lg:border lg:border-neutral-200 lg:shadow-[6px_6px_0_rgba(0,0,0,0.08)] transition duration-500 ease-in-out ${panelOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'} lg:translate-y-0 lg:opacity-100`}>
+              <div className="h-full overflow-y-auto p-5 space-y-4">
+                <div className="pb-4 border-b border-neutral-200 flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-xl font-black uppercase tracking-tight text-neutral-900">Saring Karya</h2>
+                    <p className="text-sm text-neutral-500 leading-relaxed">Gunakan filter ini untuk mempersempit tampilan pasar sesuai preferensi aset digitalmu.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPanelOpen(false)}
+                    className="h-10 w-10 rounded-full border border-neutral-300 bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition flex items-center justify-center"
+                    aria-label="Tutup panel filter"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="text-sm font-black uppercase tracking-wide text-neutral-900 mt-4">Kategori Utama</p>
+
+                <div className="space-y-2">
+                  {panelCategories.map((cat) => (
+                    <button
+                      key={cat.label}
+                      type="button"
+                      onClick={() => setSelectedPanelCategory(cat.label)}
+                      className={`w-full flex items-center justify-between rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${selectedPanelCategory === cat.label ? 'bg-neutral-950 text-white' : 'bg-neutral-50 text-neutral-800 hover:bg-neutral-100'}`}
+                    >
+                      <span>{cat.label}</span>
+                      <span className="text-xs text-neutral-500">{cat.count}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="space-y-4 pb-4 border-b border-neutral-200">
+                  <p className="text-sm font-black uppercase tracking-wide text-neutral-900">Status Penjualan</p>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 text-sm text-neutral-800">
+                      <input type="checkbox" checked={buyNow} onChange={(e) => setBuyNow(e.target.checked)} className="h-4 w-4 rounded border-neutral-300 text-emerald-700 focus:ring-emerald-700" />
+                      <span>Buy Now (Beli Langsung)</span>
+                    </label>
+                    <label className="flex items-center gap-3 text-sm text-neutral-800">
+                      <input type="checkbox" checked={onAuction} onChange={(e) => setOnAuction(e.target.checked)} className="h-4 w-4 rounded border-neutral-300 text-emerald-700 focus:ring-emerald-700" />
+                      <span>On Auction (Sedang Dilelang)</span>
+                    </label>
+                    <label className="flex items-center gap-3 text-sm text-neutral-800">
+                      <input type="checkbox" checked={notForSale} onChange={(e) => setNotForSale(e.target.checked)} className="h-4 w-4 rounded border-neutral-300 text-emerald-700 focus:ring-emerald-700" />
+                      <span>Not for Sale (Hanya Pameran)</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pb-4 border-b border-neutral-200">
+                  <p className="text-sm font-black uppercase tracking-wide text-neutral-900">Rentang Harga</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      value={minPol}
+                      onChange={(e) => setMinPol(e.target.value)}
+                      placeholder="Min POL"
+                      className="w-full rounded-2xl border border-neutral-300 bg-neutral-50 px-4 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
+                    />
+                    <input
+                      type="text"
+                      value={maxPol}
+                      onChange={(e) => setMaxPol(e.target.value)}
+                      placeholder="Max POL"
+                      className="w-full rounded-2xl border border-neutral-300 bg-neutral-50 px-4 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
+                    />
+                  </div>
+                  <button type="button" className="w-full rounded-2xl bg-neutral-950 py-3 text-sm font-black uppercase tracking-wider text-white transition hover:bg-neutral-800">Terapkan Harga</button>
+                </div>
+
+                <div className="space-y-4 pb-4 border-b border-neutral-200">
+                  <p className="text-sm font-black uppercase tracking-wide text-neutral-900">Tipe Aset</p>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 text-sm text-neutral-800">
+                      <input type="radio" name="assetType" value="pure" checked={assetType === 'pure'} onChange={() => setAssetType('pure')} className="h-4 w-4 text-emerald-700 focus:ring-emerald-700" />
+                      <span>Pure Digital (Hanya NFT)</span>
+                    </label>
+                    <label className="flex items-center gap-3 text-sm text-neutral-800">
+                      <input type="radio" name="assetType" value="physical" checked={assetType === 'physical'} onChange={() => setAssetType('physical')} className="h-4 w-4 text-emerald-700 focus:ring-emerald-700" />
+                      <span>Physical-Backed (NFT + Barang Fisik)</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pb-4 border-b border-neutral-200">
+                  <p className="text-sm font-black uppercase tracking-wide text-neutral-900">Orientasi & Rasio Gambar</p>
+                  <div className="space-y-3">
+                    {[
+                      { key: 'square', label: 'Square (1:1) - PFP Ready' },
+                      { key: 'portrait', label: 'Portrait (9:16) - Mobile' },
+                      { key: 'landscape', label: 'Landscape (16:9) - Desktop' },
+                      { key: 'panoramic', label: 'Panoramic / Ultrawide' },
+                    ].map((option) => (
+                      <label key={option.key} className="flex items-center gap-3 text-sm text-neutral-800">
+                        <input
+                          type="checkbox"
+                          checked={orientationFilters[option.key]}
+                          onChange={(e) => setOrientationFilters((prev) => ({ ...prev, [option.key]: e.target.checked }))}
+                          className="h-4 w-4 rounded border-neutral-300 text-emerald-700 focus:ring-emerald-700"
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4 pb-4 border-b border-neutral-200">
+                  <p className="text-sm font-black uppercase tracking-wide text-neutral-900">Kualitas & Resolusi</p>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 text-sm text-neutral-800">
+                      <input type="radio" name="resolution" value="all" checked={resolution === 'all'} onChange={() => setResolution('all')} className="h-4 w-4 text-emerald-700 focus:ring-emerald-700" />
+                      <span>Semua Resolusi</span>
+                    </label>
+                    <label className="flex items-center gap-3 text-sm text-neutral-800">
+                      <input type="radio" name="resolution" value="hd" checked={resolution === 'hd'} onChange={() => setResolution('hd')} className="h-4 w-4 text-emerald-700 focus:ring-emerald-700" />
+                      <span>HD & Full HD (Min. 1080p)</span>
+                    </label>
+                    <label className="flex items-center gap-3 text-sm text-neutral-800">
+                      <input type="radio" name="resolution" value="ultra" checked={resolution === 'ultra'} onChange={() => setResolution('ultra')} className="h-4 w-4 text-emerald-700 focus:ring-emerald-700" />
+                      <span>Ultra HD / Print Ready (4K+)</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-sm font-black uppercase tracking-wide text-neutral-900">Urutkan Berdasarkan</p>
+                  <select
+                    value={sortOption}
+                    onChange={(e) => setSortOption(e.target.value)}
+                    className="w-full rounded-2xl border border-neutral-300 bg-neutral-50 px-4 py-3 text-sm text-neutral-900 outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
+                  >
+                    <option>Terbaru</option>
+                    <option>Harga Tertinggi</option>
+                    <option>Harga Terendah</option>
+                    <option>Paling Disukai</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
         )}
       </main>
+
+      <button
+        type="button"
+        onClick={() => setPanelOpen((prev) => !prev)}
+        className={`lg:hidden fixed bottom-4 right-4 z-50 h-11 w-11 rounded-full border border-neutral-950 bg-white text-neutral-900 shadow-[0_10px_30px_rgba(0,0,0,0.18)] flex items-center justify-center transition hover:bg-neutral-100 ${panelOpen ? 'hidden' : 'flex'}`}
+        aria-label={panelOpen ? 'Sembunyikan panel filter' : 'Tampilkan panel filter'}
+        title={panelOpen ? 'Sembunyikan panel filter' : 'Tampilkan panel filter'}
+      >
+        <SlidersHorizontal className="h-5 w-5" />
+      </button>
 
       <Footer />
 

@@ -473,16 +473,13 @@ if (import.meta.hot) {
 const appContainer = document.getElementById('app');
 if (!appContainer) {
   console.error('❌ App container not found!');
-} else if (appContainer.hasChildNodes() && appContainer.querySelector('[data-reactroot]')) {
-  console.warn('⚠️ React already mounted, skipping render to prevent double-mount');
-} else if (appContainer.hasChildNodes()) {
-  console.warn('⚠️ App container already has children, but clearing for fresh mount');
-  appContainer.innerHTML = '';
-  const root = createRoot(appContainer);
-  root.render(<App />);
-  console.log('✅ App re-mounted after cleanup');
 } else {
-  const root = createRoot(appContainer);
-  root.render(<App />);
-  console.log('✅ App mounted successfully');
+  if (!window.__ARTVIBES_REACT_ROOT) {
+    window.__ARTVIBES_REACT_ROOT = createRoot(appContainer);
+    console.log('✅ React root created');
+  } else {
+    console.log('🔁 React root already exists, reusing it');
+  }
+
+  window.__ARTVIBES_REACT_ROOT.render(<App />);
 }
