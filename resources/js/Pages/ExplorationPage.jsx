@@ -150,9 +150,10 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
 
     try {
       const userId = auth.user?.idUser || auth.user?.id;
-      const isPinned = pinnedProducts.includes(normalizeProductId(productId));
+      const normalizedProductId = normalizeProductId(productId);
+      const isPinned = pinnedProducts.includes(normalizedProductId);
       if (isPinned) {
-        const response = await fetch(`/api/pins/${userId}/${productId}`, {
+        const response = await fetch(`/api/pins/${userId}/${normalizedProductId}`, {
           method: 'DELETE',
           headers: {
             'Accept': 'application/json',
@@ -1056,15 +1057,16 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                               const itemRowId = item.rowId || row.id;
                               const itemIndex = item.index !== undefined ? item.index : idx;
 
-                              const uniqueId = item.uniqueId || `${itemRowId}-${item.idproduk}`;
+                              const productKey = normalizeProductId(item.idproduk ?? item.id);
+                              const uniqueId = item.uniqueId || `${itemRowId}-${productKey}`;
                               const computedPrice = item.computedPrice || `${item.price_crypto || 0} ${nativeSymbol}`;
                               const titleText = item.titleText || item.title || `Digital Art ${itemIndex + 1}`;
 
                               let finalImageUrl = resolveProductImageUrl(item.image_url || item.gambar || item.nft?.metadata_url || '');
 
-                              const normalizedItemId = normalizeProductId(item.idproduk);
+                              const normalizedItemId = productKey;
                               const isLiked = likedProducts.includes(normalizedItemId);
-                              const listingState = listingStateByProduct[item.idproduk];
+                              const listingState = listingStateByProduct[productKey];
                               const buyDisabled = !listingState || !listingState.active;
 
                               return (

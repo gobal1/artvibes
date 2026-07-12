@@ -239,20 +239,21 @@ function App() {
   };
 
   const handleProductSaved = (savedProduct) => {
-    if (!savedProduct || !savedProduct.idproduk) return;
+    const savedProductId = savedProduct?.idproduk ?? savedProduct?.id ?? savedProduct?.id_produk;
+    if (!savedProduct || !savedProductId) return;
 
     setProducts((prevProducts) => {
-      const exists = prevProducts.some(p => p.idproduk === savedProduct.idproduk);
+      const exists = prevProducts.some(p => String(p.idproduk ?? p.id ?? p.id_produk) === String(savedProductId));
       if (exists) {
-        return prevProducts.map(p => p.idproduk === savedProduct.idproduk ? savedProduct : p);
+        return prevProducts.map(p => String(p.idproduk ?? p.id ?? p.id_produk) === String(savedProductId) ? savedProduct : p);
       }
       return [...prevProducts, savedProduct];
     });
 
     setMyProducts((prevProducts) => {
-      const exists = prevProducts.some(p => p.idproduk === savedProduct.idproduk);
+      const exists = prevProducts.some(p => String(p.idproduk ?? p.id ?? p.id_produk) === String(savedProductId));
       if (exists) {
-        return prevProducts.map(p => p.idproduk === savedProduct.idproduk ? savedProduct : p);
+        return prevProducts.map(p => String(p.idproduk ?? p.id ?? p.id_produk) === String(savedProductId) ? savedProduct : p);
       }
       return [...prevProducts, savedProduct];
     });
@@ -260,11 +261,11 @@ function App() {
     setPurchasedProducts((prevProducts) => {
       const shouldRemove = savedProduct.status === 'listing' || savedProduct.status === 'unlisted';
       if (!shouldRemove) return prevProducts;
-      return prevProducts.filter(p => p.idproduk !== savedProduct.idproduk);
+      return prevProducts.filter(p => String(p.idproduk ?? p.id ?? p.id_produk) !== String(savedProductId));
     });
 
     setSelectedProduct((prev) => {
-      if (prev?.idproduk === savedProduct.idproduk) {
+      if (String(prev?.idproduk ?? prev?.id ?? prev?.id_produk) === String(savedProductId)) {
         return savedProduct;
       }
       return prev;
@@ -314,7 +315,7 @@ function App() {
         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
       },
       body: JSON.stringify({
-        produk_id: product.idproduk,
+        produk_id: product.idproduk ?? product.id ?? product.id_produk,
         buyer_id: auth.user.idUser || auth.user.id,
         tx_hash: purchaseMeta.txHash,
         amount: purchaseMeta.amount ?? product.price_crypto ?? 0,
