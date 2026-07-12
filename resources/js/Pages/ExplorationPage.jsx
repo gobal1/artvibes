@@ -626,11 +626,6 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
     console.log(`   - Price: ${priceRaw}`);
 
     try {
-      if (!window.ethereum) {
-        alert('MetaMask tidak ditemukan. Silakan install MetaMask terlebih dahulu.');
-        return;
-      }
-
       await requireWalletAccess();
 
       if (!Number.isInteger(tokenId) || tokenId <= 0) {
