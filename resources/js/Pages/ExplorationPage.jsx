@@ -31,7 +31,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarPanelOpen, setSidebarPanelOpen] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [selectedPanelCategory, setSelectedPanelCategory] = useState('Digital Art');
   const [buyNow, setBuyNow] = useState(false);
   const [onAuction, setOnAuction] = useState(false);
