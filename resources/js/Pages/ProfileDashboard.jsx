@@ -1160,7 +1160,7 @@ export default function ProfileDashboard({
   };
 
   return (
-    <div className="w-full min-h-screen bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.12),transparent_45%),linear-gradient(180deg,#f8fafc_0%,#f1f5f9_60%,#ecfeff_100%)] text-neutral-900 flex flex-col justify-between relative selection:bg-neutral-900 selection:text-white">
+    <div className="w-full min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.12),transparent_45%),linear-gradient(180deg,#f8fafc_0%,#f1f5f9_60%,#ecfeff_100%)] text-neutral-900 flex flex-col justify-between relative selection:bg-neutral-900 selection:text-white">
       
       {/* HEADER DASHBOARD */}
       <header className="bg-[linear-gradient(90deg,#020617_0%,#0b132b_45%,#111827_100%)] text-white px-4 py-2.5 md:px-6 flex justify-between items-center border-b-4 border-neutral-950 sticky top-0 z-40">
