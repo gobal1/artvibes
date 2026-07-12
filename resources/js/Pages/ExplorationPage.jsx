@@ -37,7 +37,6 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
   const [onAuction, setOnAuction] = useState(false);
   const [notForSale, setNotForSale] = useState(false);
   const [minPol, setMinPol] = useState('');
-  const [isBuying, setIsBuying] = useState(false);
   const [maxPol, setMaxPol] = useState('');
   const [assetType, setAssetType] = useState('pure');
   const [orientationFilters, setOrientationFilters] = useState({
@@ -77,6 +76,23 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
     return Number.isInteger(tokenId) && tokenId > 0 ? tokenId : null;
   };
 
+  const normalizeProductId = (value) => {
+    if (value === undefined || value === null) return '';
+    return String(value);
+  };
+
+  const resolveProductImageUrl = (imageUrl) => {
+    if (!imageUrl || typeof imageUrl !== 'string') return '/images/default-art.jpg';
+    const trimmed = imageUrl.trim();
+    if (!trimmed) return '/images/default-art.jpg';
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    if (trimmed.startsWith('/storage/') || trimmed.startsWith('/images/')) return trimmed;
+    if (trimmed.startsWith('storage/')) return `/${trimmed}`;
+    if (trimmed.startsWith('produk/')) return `/storage/${trimmed}`;
+    if (/^ipfs:\/\//i.test(trimmed)) return trimmed.replace(/^ipfs:\/\//i, 'https://ipfs.io/ipfs/');
+    return `/storage/${trimmed}`;
+  };
+
   const getBuyStateLabel = (product) => {
     const listingState = listingStateByProduct[product.idproduk];
     if (!listingState) return 'Cek Listing...';
@@ -113,8 +129,8 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
       }
       const data = await response.json();
       const pinnedIds = (Array.isArray(data) ? data : [])
-        .map((pin) => pin.produk_idproduk || pin.id_produk || pin.produk?.idproduk || pin.produk?.id)
-        .filter(Boolean);
+        .map((pin) => normalizeProductId(pin.produk_idproduk ?? pin.id_produk ?? pin.produk?.idproduk ?? pin.produk?.id))
+        .filter((id) => id);
       setPinnedProducts(pinnedIds);
     } catch (err) {
       console.error('Error fetching pinned products:', err);
@@ -133,7 +149,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
 
     try {
       const userId = auth.user?.idUser || auth.user?.id;
-      const isPinned = pinnedProducts.includes(productId);
+      const isPinned = pinnedProducts.includes(normalizeProductId(productId));
       if (isPinned) {
         const response = await fetch(`/api/pins/${userId}/${productId}`, {
           method: 'DELETE',
@@ -227,8 +243,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
       });
       if (response.ok) {
         const data = await response.json();
-        // Extract just the product IDs
-        const likedIds = data.map(like => like.id_produk);
+        const likedIds = (Array.isArray(data) ? data : []).map((like) => normalizeProductId(like.id_produk ?? like.produk_idproduk ?? like.produk?.idproduk ?? like.produk?.id)).filter((id) => id);
         setLikedProducts(likedIds);
       }
     } catch (err) {
@@ -299,14 +314,14 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
       alert('Silakan login terlebih dahulu untuk menyukai produk');
       return;
     }
-    
+
     try {
       const userId = auth.user?.idUser || auth.user?.id;
-      const isLiked = likedProducts.includes(productId);
-      
+      const normalizedProductId = normalizeProductId(productId);
+      const isLiked = likedProducts.includes(normalizedProductId);
+
       if (isLiked) {
-        // Unlike - DELETE from database
-        const response = await fetch(`/api/likes/${userId}/${productId}`, {
+        const response = await fetch(`/api/likes/${userId}/${normalizedProductId}`, {
           method: 'DELETE',
           headers: {
             'Accept': 'application/json',
@@ -315,10 +330,9 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
           credentials: 'include',
         });
         if (response.ok) {
-          setLikedProducts(prev => prev.filter(id => id !== productId));
+          setLikedProducts((prev) => prev.filter((id) => id !== normalizedProductId));
         }
       } else {
-        // Like - POST to database
         const response = await fetch('/api/likes', {
           method: 'POST',
           headers: {
@@ -328,12 +342,12 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
           },
           credentials: 'include',
           body: JSON.stringify({
-            id_produk: productId,
+            id_produk: Number(normalizedProductId),
             user_idUser: userId,
           }),
         });
         if (response.ok) {
-          setLikedProducts(prev => [...prev, productId]);
+          setLikedProducts((prev) => [...new Set([...prev, normalizedProductId])]);
         }
       }
     } catch (err) {
@@ -652,7 +666,6 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
       }
 
       console.log('🔄 === MEMULAI PROSES PEMBELIAN DI BLOCKCHAIN ===');
-      setIsBuying(true);
       await requireWalletAccess();
       // 3. Jalankan transaksi via MetaMask
       const result = await buyListedToken(tokenId, priceRaw);
@@ -719,8 +732,6 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
         : `⚠️ Pembelian belum berhasil. Silakan coba lagi dalam beberapa saat.`;
 
       alert(friendlyMsg);
-    } finally {
-      setIsBuying(false);
     }
 };
 
@@ -1045,14 +1056,10 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                               const computedPrice = item.computedPrice || `${item.price_crypto || 0} ${nativeSymbol}`;
                               const titleText = item.titleText || item.title || `Digital Art ${itemIndex + 1}`;
 
-                              let finalImageUrl = '/images/default-art.jpg';
-                              if (item.image_url && item.image_url !== 'default.jpg') {
-                                finalImageUrl = item.image_url.startsWith('/storage/')
-                                  ? item.image_url
-                                  : `/storage/${item.image_url}`;
-                              }
+                              let finalImageUrl = resolveProductImageUrl(item.image_url || item.gambar || item.nft?.metadata_url || '');
 
-                              const isLiked = likedProducts.includes(item.idproduk);
+                              const normalizedItemId = normalizeProductId(item.idproduk);
+                              const isLiked = likedProducts.includes(normalizedItemId);
                               const listingState = listingStateByProduct[item.idproduk];
                               const buyDisabled = !listingState || !listingState.active;
 
@@ -1108,10 +1115,9 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                                       </button>
                                       <button
                                         onClick={() => handleBuyNft(item)}
-                                        disabled={buyDisabled || isBuying}
-                                        className="flex-1 font-black text-[10px] uppercase tracking-wider py-1.5 px-2 border-2 bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 cursor-pointer transition disabled:cursor-not-allowed disabled:opacity-70"
+                                        className="flex-1 font-black text-[10px] uppercase tracking-wider py-1.5 px-2 border-2 bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 cursor-pointer transition-transform duration-150 transform active:scale-95 active:shadow-inner"
                                       >
-                                        {isBuying ? 'Processing…' : 'Go buy'}
+                                        Go buy
                                       </button>
 
                                       <button
@@ -1122,8 +1128,8 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                                       </button>
                                       <button
                                         onClick={(e) => togglePin(e, item.idproduk)}
-                                        className={`p-1.5 border-2 transition cursor-pointer flex items-center justify-center h-7 w-7 shrink-0 ${pinnedProducts.includes(item.idproduk) ? 'bg-emerald-50 text-emerald-700 border-emerald-700' : 'bg-white text-neutral-400 border-neutral-950 hover:text-neutral-900'}`}
-                                        title={pinnedProducts.includes(item.idproduk) ? 'Batal sematkan' : 'Sematkan'}
+                                        className={`p-1.5 border-2 transition cursor-pointer flex items-center justify-center h-7 w-7 shrink-0 ${pinnedProducts.includes(normalizedItemId) ? 'bg-emerald-50 text-emerald-700 border-emerald-700' : 'bg-white text-neutral-400 border-neutral-950 hover:text-neutral-900'}`}
+                                        title={pinnedProducts.includes(normalizedItemId) ? 'Batal sematkan' : 'Sematkan'}
                                       >
                                         <Bookmark className={`h-3.5 w-3.5 ${pinnedProducts.includes(item.idproduk) ? 'fill-current' : ''}`} />
                                       </button>
@@ -1334,10 +1340,8 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
               <div className="border-4 border-neutral-950 p-1 bg-neutral-50 overflow-hidden max-h-56 sm:max-h-72 w-full sm:w-auto flex-none">
                 {(() => {
                   let imgUrl = '/images/default-art.jpg';
-                  if (selectedNft.image_url && selectedNft.image_url !== 'default.jpg') {
-                    imgUrl = selectedNft.image_url.startsWith('/storage/') 
-                      ? selectedNft.image_url 
-                      : `/storage/${selectedNft.image_url}`;
+                  if (selectedNft.image_url || selectedNft.gambar || selectedNft.nft?.metadata_url) {
+                    imgUrl = resolveProductImageUrl(selectedNft.image_url || selectedNft.gambar || selectedNft.nft?.metadata_url);
                   }
                   return <img src={imgUrl} alt={selectedNft.title} className="w-full h-full object-cover max-h-56 sm:max-h-72" />;
                 })()}

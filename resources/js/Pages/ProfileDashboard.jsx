@@ -1913,15 +1913,17 @@ export default function ProfileDashboard({
                         </div>
                       </div>
                     )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="absolute inset-0 opacity-0 cursor-pointer z-20"
-                      required={!imagePreview}
-                    />
+                    {!editingProduct && (
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                        required={!imagePreview}
+                      />
+                    )}
                   </div>
-                  {imagePreview && (
+                  {imagePreview && !editingProduct && (
                     <button
                       type="button"
                       onClick={() => {
