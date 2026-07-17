@@ -180,13 +180,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/produk/{id}', [ProdukController::class, 'update'])->where('id', '[0-9]+');
     Route::delete('/produk/{id}', [ProdukController::class, 'destroy'])->where('id', '[0-9]+');
     
-    // Like System
-    Route::post('/like/toggle', [LikeController::class, 'toggleLike']);
-    Route::get('/user/{userId}/likes', [LikeController::class, 'getUserLikes']);
-    Route::post('/likes', [LikeController::class, 'likeProduct']);
-    Route::delete('/likes/{userId}/{produkId}', [LikeController::class, 'unlikeProduct']);
-    Route::get('/likes/user/{userId}', [LikeController::class, 'getUserLikes']);
-
     // Message System
     Route::post('/messages/send', [MessageController::class, 'sendMessage']);
     Route::get('/messages/conversation/{userId}', [MessageController::class, 'getConversation']);
@@ -211,11 +204,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/{userId}/follow', [\App\Http\Controllers\FollowController::class, 'follow']);
     Route::delete('/user/{userId}/follow', [\App\Http\Controllers\FollowController::class, 'unfollow']);
 
-    // Pin / Sematkan Produk
-    Route::post('/pins', [PinController::class, 'pinProduct']);
-    Route::delete('/pins/{userId}/{produkId}', [PinController::class, 'unpinProduct']);
-    Route::get('/pins/user/{userId}', [PinController::class, 'getUserPins']);
 });
+
+// Like System (luar middleware untuk kestabilan di hosting)
+Route::post('/like/toggle', [LikeController::class, 'toggleLike']);
+Route::get('/user/{userId}/likes', [LikeController::class, 'getUserLikes']);
+Route::post('/likes', [LikeController::class, 'likeProduct']);
+Route::delete('/likes/{userId}/{produkId}', [LikeController::class, 'unlikeProduct']);
+Route::get('/likes/user/{userId}', [LikeController::class, 'getUserLikes']);
+
+// Pin / Sematkan Produk (luar middleware untuk kestabilan di hosting)
+Route::post('/pins', [PinController::class, 'pinProduct']);
+Route::delete('/pins/{userId}/{produkId}', [PinController::class, 'unpinProduct']);
+Route::get('/pins/user/{userId}', [PinController::class, 'getUserPins']);
 
 // Public read-only endpoints for followers/following (visible tanpa login)
 Route::get('/user/{userId}/followers', [\App\Http\Controllers\FollowController::class, 'followers']);

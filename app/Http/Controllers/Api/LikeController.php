@@ -56,11 +56,9 @@ class LikeController extends Controller
             $userId = (int) $request->user_idUser;
             $produkId = (int) $request->id_produk;
 
-            if (Auth::check()) {
-                $loggedInUserId = Auth::id();
-                if ($loggedInUserId && $loggedInUserId !== $userId) {
-                    $userId = (int) $loggedInUserId;
-                }
+            $authenticatedUserId = Auth::id();
+            if ($authenticatedUserId) {
+                $userId = (int) $authenticatedUserId;
             }
 
             // Check if already liked
@@ -120,11 +118,9 @@ class LikeController extends Controller
         $userId = (int) $request->user_idUser;
         $produkId = (int) $request->produk_idproduk;
 
-        if (Auth::check()) {
-            $loggedInUserId = Auth::id();
-            if ($loggedInUserId && $loggedInUserId !== $userId) {
-                $userId = (int) $loggedInUserId;
-            }
+        $authenticatedUserId = Auth::id();
+        if ($authenticatedUserId) {
+            $userId = (int) $authenticatedUserId;
         }
 
         // Cek apakah user ini sudah pernah menyukai produk ini sebelumnya

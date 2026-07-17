@@ -47,11 +47,9 @@ class PinController extends Controller
             }
 
             $userId = (int) $request->input('user_idUser');
-            if (Auth::check()) {
-                $loggedInUserId = Auth::id();
-                if ($loggedInUserId && $loggedInUserId !== $userId) {
-                    $userId = (int) $loggedInUserId;
-                }
+            $authenticatedUserId = Auth::id();
+            if ($authenticatedUserId) {
+                $userId = (int) $authenticatedUserId;
             }
             $produkId = $request->input('id_produk', $request->input('produk_idproduk'));
 
@@ -74,7 +72,7 @@ class PinController extends Controller
                 'produk_idproduk' => $produkId,
             ]);
 
-            return response()->json(['message' => 'Produk berhasil disematkan', 'data' => $pin], 201);
+            return response()->json(['message' => 'Produk berhasil disematkan', 'data' => $pin, 'user_id' => $userId], 201);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
