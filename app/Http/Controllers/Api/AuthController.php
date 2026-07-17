@@ -402,7 +402,7 @@ class AuthController extends Controller
         if ($request->hasFile('avatar')) {
             $avatarFile = $request->file('avatar');
             $path = $avatarFile->store('avatars', 'public');
-            $user->avatar = '/storage/' . $path;
+            $user->avatar = $this->buildStorageUrl($path);
         }
 
         if ($request->hasFile('profile_background_file')) {
