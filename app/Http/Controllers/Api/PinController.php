@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Pin;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class PinController extends Controller
@@ -46,6 +47,12 @@ class PinController extends Controller
             }
 
             $userId = (int) $request->input('user_idUser');
+            if (Auth::check()) {
+                $loggedInUserId = Auth::id();
+                if ($loggedInUserId && $loggedInUserId !== $userId) {
+                    $userId = (int) $loggedInUserId;
+                }
+            }
             $produkId = $request->input('id_produk', $request->input('produk_idproduk'));
 
             if ($produkId === null || $produkId === '') {
