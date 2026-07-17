@@ -1382,7 +1382,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                   className="flex items-center gap-2 bg-white hover:bg-neutral-50 px-2.5 py-1.5 border-2 border-neutral-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer text-xs font-medium text-neutral-600 no-underline"
                 >
                   <div className="w-5 h-5 rounded-full bg-neutral-300 overflow-hidden shrink-0 border border-neutral-950">
-                    <img src={selectedNft.user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"} className="w-full h-full object-cover" alt="avatar" />
+                    <img src={selectedNft.user?.avatar ? selectedNft.user.avatar : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"} className="w-full h-full object-cover" alt="avatar" />
                   </div>
                   <span>Owner: <span className="font-black text-neutral-900 underline decoration-2">{selectedNft.user?.name || 'Unknown'}</span></span>
                   <ShieldCheck className="h-4 w-4 text-blue-500 ml-auto" />

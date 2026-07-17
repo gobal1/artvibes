@@ -352,7 +352,7 @@ class AuthController extends Controller
 
         $avatarFile = $request->file('avatar');
         $path = $avatarFile->store('avatars', 'public');
-        $user->avatar = '/storage/' . $path;
+        $user->avatar = $this->buildStorageUrl($path);
         $user->save();
 
         return response()->json(['success' => true, 'user' => $user]);
@@ -372,6 +372,17 @@ class AuthController extends Controller
         $user->save();
 
         return response()->json(['success' => true, 'user' => $user]);
+    }
+
+    protected function buildStorageUrl(string $path): string
+    {
+        $storageBaseUrl = rtrim(config('app.url', env('APP_URL', '')), '/');
+
+        if (str_contains($path, 'http://') || str_contains($path, 'https://')) {
+            return $path;
+        }
+
+        return $storageBaseUrl . '/storage/' . ltrim($path, '/');
     }
 
     public function updateProfile(Request $request)
@@ -397,7 +408,7 @@ class AuthController extends Controller
         if ($request->hasFile('profile_background_file')) {
             $backgroundFile = $request->file('profile_background_file');
             $path = $backgroundFile->store('profile_backgrounds', 'public');
-            $user->profile_background = '/storage/' . $path;
+            $user->profile_background = $this->buildStorageUrl($path);
         } elseif ($request->filled('profile_background_url')) {
             $user->profile_background = $request->input('profile_background_url');
         }
