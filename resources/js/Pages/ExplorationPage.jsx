@@ -162,7 +162,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
           credentials: 'include',
         });
         if (response.ok) {
-          setPinnedProducts((prev) => prev.filter((id) => id !== productId));
+          setPinnedProducts((prev) => prev.filter((id) => id !== normalizedProductId));
         }
       } else {
         const response = await fetch('/api/pins', {
@@ -179,7 +179,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
           }),
         });
         if (response.ok) {
-          setPinnedProducts((prev) => [...new Set([...prev, productId])]);
+          setPinnedProducts((prev) => [...new Set([...prev, normalizedProductId])]);
         }
       }
     } catch (err) {
