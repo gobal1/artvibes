@@ -162,7 +162,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
           credentials: 'include',
         });
         if (response.ok) {
-          setPinnedProducts((prev) => prev.filter((id) => id !== normalizedProductId));
+          setPinnedProducts((prev) => prev.filter((id) => id !== productId));
         }
       } else {
         const response = await fetch('/api/pins', {
@@ -179,7 +179,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
           }),
         });
         if (response.ok) {
-          setPinnedProducts((prev) => [...new Set([...prev, normalizedProductId])]);
+          setPinnedProducts((prev) => [...new Set([...prev, productId])]);
         }
       }
     } catch (err) {
@@ -948,8 +948,8 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
             <p className="text-sm text-neutral-500 mt-1">Coba kata kunci lain untuk "{searchQuery}"</p>
           </div>
         ) : (
-          <div className="flex-1 min-h-0 flex flex-col gap-6 transition-all duration-500 ease-in-out lg:flex-row lg:items-start lg:overflow-hidden">
-            <section className={`w-full transition-all duration-500 ease-in-out ${panelOpen ? 'lg:w-[75%]' : 'lg:w-full'} flex flex-col h-full min-h-0 overflow-hidden`}>
+          <div className="flex-1 min-h-0 flex flex-col gap-6 lg:flex-row lg:overflow-hidden transition-all duration-500 ease-in-out">
+            <section className={`w-full transition-all duration-500 ease-in-out ${panelOpen ? 'lg:w-3/4' : 'lg:w-full'} flex flex-col h-full min-h-0 overflow-hidden`}>
               <div className="flex-1 h-full min-h-0 overflow-y-auto space-y-6 pr-0 lg:pr-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 {rowsToRender.map((row, rowIndex) => {
                   // Distribusi produk ke setiap row agar tidak ada duplikat saat kategori 'all'
@@ -1167,7 +1167,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
           </div>
         </section>
 
-          <aside className={`overflow-hidden transition-all duration-500 ease-in-out fixed inset-x-0 bottom-0 z-40 h-[55vh] w-full ${panelOpen ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-full opacity-0 pointer-events-none'} lg:static lg:inset-auto lg:bottom-auto lg:z-auto lg:h-auto lg:w-[25%] ${panelOpen ? 'lg:block lg:opacity-100 lg:pointer-events-auto lg:translate-y-0' : 'lg:hidden'}`}>
+          <aside className={`overflow-hidden transition-all duration-500 ease-in-out fixed inset-x-0 bottom-0 z-40 h-[55vh] w-full ${panelOpen ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-full opacity-0 pointer-events-none'} lg:static lg:inset-auto lg:bottom-auto lg:z-auto lg:h-auto ${panelOpen ? 'lg:block lg:w-1/4 lg:opacity-100 lg:pointer-events-auto lg:translate-y-0' : 'lg:hidden'}`}>
             <div className={`h-full overflow-hidden rounded-t-[1.75rem] border-t border-neutral-200 bg-white shadow-[0_-20px_60px_rgba(0,0,0,0.16)] lg:rounded-4xl lg:border lg:border-neutral-200 lg:shadow-[6px_6px_0_rgba(0,0,0,0.08)] transition duration-500 ease-in-out ${panelOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'} lg:translate-y-0 lg:opacity-100`}>
               <div className="h-full overflow-y-auto p-5 space-y-4">
                 <div className="pb-4 border-b border-neutral-200 flex items-start justify-between gap-3">
@@ -1382,7 +1382,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
                   className="flex items-center gap-2 bg-white hover:bg-neutral-50 px-2.5 py-1.5 border-2 border-neutral-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer text-xs font-medium text-neutral-600 no-underline"
                 >
                   <div className="w-5 h-5 rounded-full bg-neutral-300 overflow-hidden shrink-0 border border-neutral-950">
-                    <img src={selectedNft.user?.avatar ? selectedNft.user.avatar : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"} className="w-full h-full object-cover" alt="avatar" />
+                    <img src={selectedNft.user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"} className="w-full h-full object-cover" alt="avatar" />
                   </div>
                   <span>Owner: <span className="font-black text-neutral-900 underline decoration-2">{selectedNft.user?.name || 'Unknown'}</span></span>
                   <ShieldCheck className="h-4 w-4 text-blue-500 ml-auto" />

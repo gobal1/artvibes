@@ -150,7 +150,7 @@ export default function PublicProfile({ navigateTo, targetUser, products = [], a
               <div className="absolute z-30 top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 sm:left-8 sm:translate-x-0 sm:-translate-y-1/2">
                 <div className="h-20 w-20 sm:h-28 sm:w-28 overflow-hidden rounded-full border-8 border-white shadow-[0_0_0_4px_rgba(0,0,0,0.12)]">
                   <img
-                    src={targetUser?.avatar ? targetUser.avatar : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'}
+                    src={targetUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'}
                     alt="avatar"
                     className="h-full w-full object-cover"
                   />

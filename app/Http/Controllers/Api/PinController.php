@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\Pin;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Pin;
 use Illuminate\Support\Facades\Validator;
 
 class PinController extends Controller
@@ -37,27 +36,16 @@ class PinController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
+                'id_produk' => 'required|integer',
                 'user_idUser' => 'required|integer',
-                'id_produk' => 'nullable|integer',
-                'produk_idproduk' => 'nullable|integer',
             ]);
 
             if ($validator->fails()) {
                 return response()->json(['error' => $validator->errors()], 400);
             }
 
-            $userId = (int) $request->input('user_idUser');
-            $authenticatedUserId = Auth::id();
-            if ($authenticatedUserId) {
-                $userId = (int) $authenticatedUserId;
-            }
-            $produkId = $request->input('id_produk', $request->input('produk_idproduk'));
-
-            if ($produkId === null || $produkId === '') {
-                return response()->json(['error' => 'id_produk wajib diisi'], 400);
-            }
-
-            $produkId = (int) $produkId;
+            $userId = $request->user_idUser;
+            $produkId = $request->id_produk;
 
             $existingPin = Pin::where('user_idUser', $userId)
                 ->where('produk_idproduk', $produkId)
@@ -72,7 +60,7 @@ class PinController extends Controller
                 'produk_idproduk' => $produkId,
             ]);
 
-            return response()->json(['message' => 'Produk berhasil disematkan', 'data' => $pin, 'user_id' => $userId], 201);
+            return response()->json(['message' => 'Produk berhasil disematkan', 'data' => $pin], 201);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

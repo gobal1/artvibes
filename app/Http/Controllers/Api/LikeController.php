@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\Like;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Like;
 use Illuminate\Support\Facades\Validator;
 
 class LikeController extends Controller
@@ -53,13 +52,8 @@ class LikeController extends Controller
                 return response()->json(['error' => $validator->errors()], 400);
             }
 
-            $userId = (int) $request->user_idUser;
-            $produkId = (int) $request->id_produk;
-
-            $authenticatedUserId = Auth::id();
-            if ($authenticatedUserId) {
-                $userId = (int) $authenticatedUserId;
-            }
+            $userId = $request->user_idUser;
+            $produkId = $request->id_produk;
 
             // Check if already liked
             $existingLike = Like::where('user_idUser', $userId)
@@ -115,13 +109,8 @@ class LikeController extends Controller
             return response()->json(['error' => $validator->errors()], 400);
         }
 
-        $userId = (int) $request->user_idUser;
-        $produkId = (int) $request->produk_idproduk;
-
-        $authenticatedUserId = Auth::id();
-        if ($authenticatedUserId) {
-            $userId = (int) $authenticatedUserId;
-        }
+        $userId = $request->user_idUser;
+        $produkId = $request->produk_idproduk;
 
         // Cek apakah user ini sudah pernah menyukai produk ini sebelumnya
         $existingLike = Like::where('user_idUser', $userId)

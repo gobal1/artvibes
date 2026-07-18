@@ -1200,7 +1200,7 @@ export default function ProfileDashboard({
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-5 xl:pr-20 w-full flex-1 my-5 space-y-4 pb-56 md:pb-48 xl:pb-0">
+      <main className="max-w-7xl mx-auto px-4 sm:px-5 xl:pr-20 w-full flex-1 my-5 space-y-4 pb-0 xl:pb-0">
         <aside className="hidden xl:flex fixed inset-y-0 right-0 z-30 h-dvh min-h-dvh w-14 flex-col items-center justify-between border-l border-white/10 bg-slate-950 p-3 shadow-[0_35px_60px_-30px_rgba(0,0,0,0.8)]">
           <div className="space-y-2 text-center pt-6">
             <div className="text-[9px] uppercase tracking-[0.45em] text-emerald-400 font-mono">Aksi</div>
@@ -1232,8 +1232,8 @@ export default function ProfileDashboard({
 
         </aside>
 
-        <div className="xl:hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1rem)] max-w-md rounded-2xl border-2 border-neutral-950 bg-white/95 backdrop-blur p-1.5 shadow-[0_8px_20px_rgba(0,0,0,0.25)]">
-          <div className="grid grid-cols-5 gap-1.5">
+        <div className="xl:hidden fixed inset-x-0 bottom-0 z-[60] w-full  backdrop-blur !mb-0">
+          <div className="grid grid-cols-5 gap-1 px-1 py-1 pb-[max(0.35rem,env(safe-area-inset-bottom))]">
             {sidebarActions.map((item) => {
               const Icon = item.icon;
               const isActive = activePanelAction === item.id;
