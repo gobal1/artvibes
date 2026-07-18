@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import StudioNavigationPanel from '../Components/StudioNavigationPanel';
 
 export default function DashboardFinancePage({ navigateTo, purchasedProducts = [], marketCurrencySymbol = 'POL' }) {
   const fallbackAnalytics = useMemo(() => {
@@ -181,7 +180,6 @@ export default function DashboardFinancePage({ navigateTo, purchasedProducts = [
         </aside>
       </div>
     </main>
-    <StudioNavigationPanel navigateTo={navigateTo} active="finance" />
     </div>
   );
 }

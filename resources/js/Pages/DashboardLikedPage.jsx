@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import StudioNavigationPanel from '../Components/StudioNavigationPanel';
 
 export default function DashboardLikedPage({ navigateTo, auth, marketCurrencySymbol = 'POL' }) {
   const [favoritesView, setFavoritesView] = useState('liked');
@@ -303,7 +302,6 @@ export default function DashboardLikedPage({ navigateTo, auth, marketCurrencySym
           </div>
         )}
       </main>
-      <StudioNavigationPanel navigateTo={navigateTo} active="dashboard" />
     </div>
   );
 }

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import StudioNavigationPanel from '../Components/StudioNavigationPanel';
 
 export default function ProfileSettingsPage({ auth, navigateTo, onAuthUpdate }) {
   const user = auth?.user || {};
@@ -263,8 +262,6 @@ export default function ProfileSettingsPage({ auth, navigateTo, onAuthUpdate }) 
           </section>
         </div>
       </div>
-
-      <StudioNavigationPanel navigateTo={navigateTo} active="dashboard" />
     </div>
   );
 }

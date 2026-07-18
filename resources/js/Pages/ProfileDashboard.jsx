@@ -936,7 +936,7 @@ export default function ProfileDashboard({
   const sidebarActions = [
     {
       id: 'add-art',
-      label: 'Tambah Karya',
+      label: 'studio',
       icon: Plus,
       onClick: () => {
         setEditingProduct(null);
@@ -1238,7 +1238,7 @@ export default function ProfileDashboard({
               const Icon = item.icon;
               const isActive = activePanelAction === item.id;
               const mobileLabelMap = {
-                'add-art': 'Tambah',
+                'add-art': 'studio',
                 'chat': 'Chat',
                 'liked': 'Disuka',
                 'activity': 'Aktiv',

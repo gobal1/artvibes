@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import DashboardActivityPage from './DashboardActivityPage';
-import StudioNavigationPanel from '../Components/StudioNavigationPanel';
 
 export default function DashboardActivityStandalonePage({ navigateTo, auth, myProducts = [], purchasedProducts = [] }) {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -83,7 +82,6 @@ export default function DashboardActivityStandalonePage({ navigateTo, auth, myPr
         fullPage={true}
       />
     </main>
-    <StudioNavigationPanel navigateTo={navigateTo} active="activity" />
     </div>
   );
 }
