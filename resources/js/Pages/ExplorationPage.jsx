@@ -948,8 +948,8 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
             <p className="text-sm text-neutral-500 mt-1">Coba kata kunci lain untuk "{searchQuery}"</p>
           </div>
         ) : (
-          <div className="flex-1 min-h-0 flex flex-col gap-6 lg:flex-row lg:overflow-hidden transition-all duration-500 ease-in-out">
-            <section className={`w-full transition-all duration-500 ease-in-out ${panelOpen ? 'lg:w-3/4' : 'lg:w-full'} flex flex-col h-full min-h-0 overflow-hidden`}>
+          <div className="flex-1 min-h-0 flex flex-col gap-6 transition-all duration-500 ease-in-out lg:flex-row lg:items-start lg:overflow-hidden">
+            <section className={`w-full transition-all duration-500 ease-in-out ${panelOpen ? 'lg:w-[75%]' : 'lg:w-full'} flex flex-col h-full min-h-0 overflow-hidden`}>
               <div className="flex-1 h-full min-h-0 overflow-y-auto space-y-6 pr-0 lg:pr-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 {rowsToRender.map((row, rowIndex) => {
                   // Distribusi produk ke setiap row agar tidak ada duplikat saat kategori 'all'
@@ -1167,7 +1167,7 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
           </div>
         </section>
 
-          <aside className={`overflow-hidden transition-all duration-500 ease-in-out fixed inset-x-0 bottom-0 z-40 h-[55vh] w-full ${panelOpen ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-full opacity-0 pointer-events-none'} lg:static lg:inset-auto lg:bottom-auto lg:z-auto lg:h-auto ${panelOpen ? 'lg:block lg:w-1/4 lg:opacity-100 lg:pointer-events-auto lg:translate-y-0' : 'lg:hidden'}`}>
+          <aside className={`overflow-hidden transition-all duration-500 ease-in-out fixed inset-x-0 bottom-0 z-40 h-[55vh] w-full ${panelOpen ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-full opacity-0 pointer-events-none'} lg:static lg:inset-auto lg:bottom-auto lg:z-auto lg:h-auto lg:w-[25%] ${panelOpen ? 'lg:block lg:opacity-100 lg:pointer-events-auto lg:translate-y-0' : 'lg:hidden'}`}>
             <div className={`h-full overflow-hidden rounded-t-[1.75rem] border-t border-neutral-200 bg-white shadow-[0_-20px_60px_rgba(0,0,0,0.16)] lg:rounded-4xl lg:border lg:border-neutral-200 lg:shadow-[6px_6px_0_rgba(0,0,0,0.08)] transition duration-500 ease-in-out ${panelOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'} lg:translate-y-0 lg:opacity-100`}>
               <div className="h-full overflow-y-auto p-5 space-y-4">
                 <div className="pb-4 border-b border-neutral-200 flex items-start justify-between gap-3">
