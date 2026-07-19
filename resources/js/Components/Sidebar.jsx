@@ -57,7 +57,7 @@ export default function Sidebar({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={() => setSidebarOpen && setSidebarOpen(false)}
-          className="fixed inset-0 bg-black/60 z-[40] lg:hidden"
+          className="fixed inset-0 bg-black/60 z-[45] lg:hidden"
         />
       )}
 
@@ -65,7 +65,7 @@ export default function Sidebar({
         initial={{ x: -280 }}
         animate={{ x: sidebarOpen ? 0 : -280 }}
         transition={{ duration: 0.25, ease: "easeInOut" }}
-        className="fixed top-0 left-0 z-[50] h-screen w-[280px] overflow-hidden border-r border-white/10 bg-slate-950/95 backdrop-blur-xl lg:hidden"
+        className="fixed top-0 left-0 z-[60] h-screen w-[280px] overflow-hidden border-r border-white/10 bg-slate-950/95 backdrop-blur-xl lg:hidden"
       >
         <div className="h-full w-full space-y-6 p-5">
           <div className="pb-2 border-b border-white/10">
@@ -125,7 +125,7 @@ export default function Sidebar({
               animate="open"
               exit="closed"
               variants={containerVariants}
-              className="fixed left-0 top-20 z-[45] w-72 max-h-[calc(100vh-5rem)] overflow-y-auto bg-slate-950/95 backdrop-blur-2xl shadow-[30px_0_60px_-20px_rgba(0,0,0,0.9)] flex flex-col justify-between border-none"
+              className="fixed left-0 top-20 z-[55] w-72 max-h-[calc(100vh-5rem)] overflow-y-auto bg-slate-950/95 backdrop-blur-2xl shadow-[30px_0_60px_-20px_rgba(0,0,0,0.9)] flex flex-col justify-between border-none"
             >
               <div className="absolute left-[36px] top-0 bottom-0 w-[2px] z-10 pointer-events-none">
                 <div className="w-full h-full bg-gradient-to-b from-emerald-400 via-teal-500 to-transparent shadow-[0_0_10px_rgba(52,211,153,0.6)]" />
@@ -212,7 +212,7 @@ export default function Sidebar({
 
         {/* LENGKUNGAN INTERKONEKSI LAYOUT */}
         {sidebarPanelOpen && (
-          <div className="fixed left-72 top-20 w-12 h-12 pointer-events-none overflow-hidden z-[46]">
+          <div className="fixed left-72 top-20 w-12 h-12 pointer-events-none overflow-hidden z-[56]">
             <div 
               className="w-full h-full rounded-tl-[48px] bg-transparent"
               style={{ boxShadow: '-24px -24px 0 0 #020617' }}

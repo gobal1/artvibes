@@ -745,45 +745,56 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
       <main className="w-full px-0 sm:px-5 lg:px-0 flex-1 min-h-0 space-y-7 my-4 sm:my-6 pb-0">
         
         {/* AREA ATAS: Navigasi Premium & Search Bar */}
-        <div className="flex flex-col gap-2 border-b border-neutral-200 pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="flex flex-col gap-2 border-b border-neutral-200/80 pb-2.5 sm:pb-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <a 
               href="/"
-              className="text-neutral-900 hover:text-neutral-600 cursor-pointer text-[10px] sm:text-[11px] font-black tracking-widest uppercase transition self-start sm:self-auto no-underline"
+              className="self-start rounded-full border border-neutral-200/80 bg-white/80 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-neutral-700 transition hover:border-neutral-300 hover:text-neutral-900 no-underline sm:self-auto"
             >
-              ← Kembali ke Beranda Utama
+              ← Kembali ke Beranda
             </a>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
-              <div className="relative w-full sm:w-[26rem]">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
-                  <Search className="h-3.5 w-3.5" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Cari maha karya digital..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    scrollToProductsSection();
-                  }}
-                  className="w-full pl-10 pr-9 py-2 bg-neutral-50 text-neutral-900 placeholder-neutral-500 border border-neutral-300 rounded-xl focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition text-sm"
-                />
-                {searchQuery && (
-                  <button 
-                    onClick={() => setSearchQuery('')}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-neutral-400 hover:text-neutral-900 cursor-pointer border-none bg-transparent"
+              <div className="w-full sm:w-[28rem]">
+                <div className="flex overflow-hidden rounded-full border border-neutral-200 bg-white shadow-[0_6px_20px_-12px_rgba(15,23,42,0.45)]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveCategory('all');
+                      setActiveImageSubCategory('row-image');
+                      setSelectedYear('all');
+                      scrollToProductsSection();
+                    }}
+                    className={`shrink-0 border-r border-neutral-200 px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.24em] transition ${activeCategory === 'all' ? 'bg-neutral-200 text-neutral-900' : 'bg-neutral-50 text-neutral-700 hover:bg-neutral-100'}`}
                   >
-                    <X className="h-4 w-4" />
+                    All
                   </button>
-                )}
+                  <input
+                    type="text"
+                    placeholder="Cari maha karya digital..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      scrollToProductsSection();
+                    }}
+                    className="flex-1 bg-transparent px-3 py-2.5 text-sm text-neutral-900 placeholder-neutral-500 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => scrollToProductsSection()}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center bg-blue-600 text-white transition hover:bg-blue-700"
+                    aria-label="Cari"
+                  >
+                    <Search className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
-              <div className="flex gap-2 items-center w-full sm:w-auto">
+              <div className="flex w-full items-center gap-2 sm:w-auto">
                 <div className="relative flex-1 min-w-0" ref={yearFilterRef}>
                   <button
                     type="button"
                     onClick={() => setYearFilterOpen((prev) => !prev)}
-                    className={`inline-flex items-center justify-between h-9 w-full px-3 border-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition ${yearFilterOpen ? 'bg-neutral-950 text-white border-neutral-950' : 'bg-white text-neutral-900 border-neutral-300 hover:border-neutral-900'}`}
+                    className={`inline-flex h-9 w-full items-center justify-between rounded-full border px-3 text-[11px] font-semibold uppercase tracking-[0.2em] transition ${yearFilterOpen ? 'border-neutral-950 bg-neutral-950 text-white' : 'border-neutral-200/80 bg-white text-neutral-900 hover:border-neutral-900'}`}
                   >
                     <span className="inline-flex items-center gap-2">
                       <CalendarDays className="h-4 w-4" />
@@ -891,20 +902,6 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
             })}
           </div>
 
-          <div className="mt-2 flex items-center justify-between gap-3 border border-neutral-200 rounded-xl px-3 py-2 bg-neutral-50">
-            <p className="text-[12px] text-neutral-600">
-              Menampilkan <span className="font-black text-neutral-900">{visibleProducts.length}</span> dari <span className="font-black text-neutral-900">{yearFilteredProducts.length}</span> produk
-            </p>
-            {canLoadMore && (
-              <button
-                type="button"
-                onClick={handleLoadMoreAndScroll}
-                className="bg-neutral-950 hover:bg-neutral-800 text-white text-[11px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border-2 border-neutral-950 transition cursor-pointer"
-              >
-                Tampilkan Lebih Banyak
-              </button>
-            )}
-          </div>
           {activeCategory === 'row-image' && (
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 mt-1">
               {imageSubCategories.map((subCat) => {
@@ -1154,13 +1151,13 @@ export default function ExplorationPage({ products = [], isLoading = false, prod
             })}
 
             {canLoadMore && (
-              <div className="pt-2 flex justify-center">
+              <div className="pt-3 flex justify-center">
                 <button
                   type="button"
                   onClick={handleLoadMoreAndScroll}
-                  className="w-full sm:w-auto min-w-64 bg-emerald-700 hover:bg-emerald-800 text-white font-black uppercase tracking-wider py-3 px-8 border-2 border-emerald-800 rounded-xl shadow-[4px_4px_0px_0px_rgba(6,78,59,0.4)] transition cursor-pointer"
+                  className="w-full sm:w-auto min-w-64 text-black text-[11px]"
                 >
-                  Muat Scroll Berikutnya
+                  Tampilkan Lebih Banyak
                 </button>
               </div>
             )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send } from 'lucide-react';
+import { X, Send, ArrowLeft } from 'lucide-react';
 
 export default function ChatSidebar({ targetUser, auth, isOpen, onClose, onMessageSent, conversations = [], onConversationSelect, loadingConversations = false }) {
   const [messages, setMessages] = useState([]);
@@ -7,6 +7,7 @@ export default function ChatSidebar({ targetUser, auth, isOpen, onClose, onMessa
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [selectedConvUser, setSelectedConvUser] = useState(null);
+  const [mobileView, setMobileView] = useState('list');
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -35,10 +36,10 @@ export default function ChatSidebar({ targetUser, auth, isOpen, onClose, onMessa
   }, [targetUser, selectedConvUser]);
 
   useEffect(() => {
-    if (!selectedConvUser && conversations && conversations.length > 0) {
-      setSelectedConvUser(conversations[0].other_user);
+    if (!isOpen) {
+      setMobileView('list');
     }
-  }, [conversations, selectedConvUser]);
+  }, [isOpen]);
 
   // Fetch existing messages
   useEffect(() => {
@@ -144,26 +145,35 @@ export default function ChatSidebar({ targetUser, auth, isOpen, onClose, onMessa
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/40 z-40"
+        className="fixed inset-0 bg-black/40 z-[35]"
         onClick={onClose}
       />
       
       {/* Chat Overlay */}
-      <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xl text-white shadow-2xl z-50 flex flex-col border border-white/10">
+      <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xl text-white shadow-2xl z-[40] flex flex-col border border-white/10">
         
         {/* Header */}
         <div className="bg-linear-to-r from-slate-900/80 to-slate-800/80 backdrop-blur-md text-white p-4 flex justify-between items-center shrink-0 border-b border-white/10">
-          <div>
-            <h2 className="font-black text-sm uppercase">💬 Chat Konsultasi</h2>
-            <p className="text-[10px] text-slate-300">
-              {selectedConvUser?.name || targetUser?.name || 'Loading...'}
-            </p>
+          <div className="flex items-center gap-2">
+            {mobileView === 'chat' && (
+              <button
+                onClick={() => setMobileView('list')}
+                className="bg-white/10 hover:bg-white/20 text-white p-2 border border-white/20 rounded-lg transition backdrop-blur-sm lg:hidden"
+              >
+                <ArrowLeft size={18} />
+              </button>
+            )}
+            <div>
+              <h2 className="font-black text-sm uppercase">💬 Chat Konsultasi</h2>
+              <p className="text-[10px] text-slate-300">
+                {selectedConvUser?.name || targetUser?.name || 'Loading...'}
+              </p>
+            </div>
           </div>
           <button 
             onClick={() => {
-              if (selectedConvUser) {
-                setSelectedConvUser(null);
-                setMessages([]);
+              if (mobileView === 'chat') {
+                setMobileView('list');
               } else {
                 onClose && onClose();
               }
@@ -175,7 +185,7 @@ export default function ChatSidebar({ targetUser, auth, isOpen, onClose, onMessa
         </div>
 
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-slate-900/40 backdrop-blur-sm">
-          <div className="lg:w-80 w-full border-r-0 lg:border-r border-white/10 overflow-y-auto bg-slate-800/40 backdrop-blur-sm p-4">
+          <div className={`w-full lg:w-80 ${mobileView === 'chat' ? 'hidden lg:flex' : 'flex'} flex-col border-r-0 lg:border-r border-white/10 overflow-y-auto bg-slate-800/40 backdrop-blur-sm p-4`}>
             <div className="flex items-center justify-between mb-4 gap-3">
               <div>
                 <h3 className="font-black uppercase text-xs text-white">Daftar Chat</h3>
@@ -185,6 +195,7 @@ export default function ChatSidebar({ targetUser, auth, isOpen, onClose, onMessa
                 onClick={() => {
                   setSelectedConvUser(null);
                   setMessages([]);
+                  setMobileView('list');
                 }}
                 className="text-[10px] uppercase tracking-widest text-slate-400 hover:text-emerald-300 transition"
               >
@@ -202,6 +213,7 @@ export default function ChatSidebar({ targetUser, auth, isOpen, onClose, onMessa
                     onClick={() => {
                       setSelectedConvUser(conv.other_user);
                       setLoading(true);
+                      setMobileView('chat');
                       onConversationSelect && onConversationSelect(conv.other_user);
                     }}
                     className={`w-full text-left p-3 border rounded-lg backdrop-blur-sm transition ${selectedConvUser?.idUser === conv.other_user?.idUser || selectedConvUser?.id === conv.other_user?.id ? 'border-emerald-400 bg-emerald-500/20 text-white' : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:border-emerald-400'}`}
@@ -227,7 +239,7 @@ export default function ChatSidebar({ targetUser, auth, isOpen, onClose, onMessa
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className={`flex-1 ${mobileView === 'list' ? 'hidden lg:flex' : 'flex'} flex-col overflow-hidden`}>
             <div className="bg-linear-to-r from-slate-800/60 to-slate-700/60 backdrop-blur-md text-white p-4 border-b border-white/10 flex items-center justify-between">
               <div>
                 <h2 className="font-black text-sm uppercase">💬 Obrolan Langsung</h2>
@@ -236,7 +248,13 @@ export default function ChatSidebar({ targetUser, auth, isOpen, onClose, onMessa
                 </p>
               </div>
               <button
-                onClick={() => onClose && onClose()}
+                onClick={() => {
+                  if (window.innerWidth < 1024) {
+                    setMobileView('list');
+                  } else {
+                    onClose && onClose();
+                  }
+                }}
                 className="bg-white/10 hover:bg-white/20 text-white p-2 border border-white/20 rounded-lg transition backdrop-blur-sm"
               >
                 <X size={18} />
