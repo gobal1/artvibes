@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -36,35 +35,6 @@ class AuthController extends Controller
         return $user->google_id === 'wallet_login'
             && $email
             && str_ends_with($email, '@artvibes.local');
-    }
-
-    private function ensurePublicStorageLink(): void
-    {
-        $publicStoragePath = public_path('storage');
-        $storagePath = storage_path('app/public');
-
-        if (is_dir($publicStoragePath) || is_link($publicStoragePath)) {
-            return;
-        }
-
-        if (is_dir($storagePath)) {
-            @symlink($storagePath, $publicStoragePath);
-        }
-    }
-
-    private function resolveStoredAssetUrl(string $path): string
-    {
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            return $path;
-        }
-
-        if (str_starts_with($path, '/')) {
-            return url($path);
-        }
-
-        $this->ensurePublicStorageLink();
-
-        return Storage::disk('public')->url($path);
     }
     // Cek User Login (Untuk Frontend)
     public function getAuthenticatedUser() {
@@ -421,13 +391,13 @@ class AuthController extends Controller
         if ($request->hasFile('avatar')) {
             $avatarFile = $request->file('avatar');
             $path = $avatarFile->store('avatars', 'public');
-            $user->avatar = $this->resolveStoredAssetUrl($path);
+            $user->avatar = '/storage/' . $path;
         }
 
         if ($request->hasFile('profile_background_file')) {
             $backgroundFile = $request->file('profile_background_file');
             $path = $backgroundFile->store('profile_backgrounds', 'public');
-            $user->profile_background = $this->resolveStoredAssetUrl($path);
+            $user->profile_background = '/storage/' . $path;
         } elseif ($request->filled('profile_background_url')) {
             $user->profile_background = $request->input('profile_background_url');
         }
