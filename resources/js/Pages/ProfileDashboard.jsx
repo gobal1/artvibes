@@ -1837,9 +1837,9 @@ export default function ProfileDashboard({
 
       {/* POP-UP MODAL TAMBAH & EDIT KARYA */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-neutral-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+        <div className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-neutral-950/75 px-3 py-4 backdrop-blur-md sm:px-4 sm:py-6">
           {uploading ? (
-            <div className="relative h-48 w-48 overflow-visible">
+            <div className="relative mt-12 h-48 w-48 overflow-visible">
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-20 w-20 rounded-full bg-sky-400/10 blur-2xl animate-pulse" />
 
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-sky-300 shadow-[0_0_22px_rgba(125,211,252,0.95)]" />
@@ -1857,18 +1857,27 @@ export default function ProfileDashboard({
               </div>
             </div>
           ) : (
-          <div className="bg-white border-4 border-neutral-950 w-full max-w-4xl p-4 sm:p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative my-auto max-h-[88vh] overflow-y-auto">
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 bg-red-500 text-white border-2 border-neutral-950 font-black p-1.5 text-xs uppercase hover:bg-red-600 transition cursor-pointer z-50"
-            >
-              ✕ Tutup
-            </button>
+          <div className="relative my-3 w-full max-w-5xl overflow-hidden rounded-[2rem] border-4 border-neutral-950 bg-white shadow-[0_30px_90px_rgba(0,0,0,0.35)]">
+            <div className="sticky top-0 z-10 border-b-4 border-neutral-950 bg-[linear-gradient(135deg,#0f172a_0%,#111827_100%)] px-4 py-3 text-white sm:px-5 sm:py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.35em] text-emerald-300">Panel Tambah Karya</p>
+                  <h2 className="mt-1 text-lg font-black uppercase tracking-tight sm:text-xl">
+                    {editingProduct ? 'Perbarui Metadata Karya' : 'Tambah Karya Baru'}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-white bg-white text-neutral-950 font-black transition hover:bg-neutral-100"
+                  aria-label="Tutup popup"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
 
-            <h2 className="text-lg sm:text-xl font-black uppercase tracking-tight mb-3 border-b-4 border-neutral-950 pb-2 bg-neutral-950 text-white -mx-4 sm:-mx-5 -mt-4 sm:-mt-5 p-3.5">
-              {editingProduct ? "📝 PERBARUI METADATA MAHA KARYA" : "🆕 UNGGAH MAHA KARYA BARU KE CLOUD & NFT"}
-            </h2>
+            <div className="max-h-[80vh] overflow-y-auto p-4 sm:p-5">
 
             {submitSuccess ? (
               <div className="bg-emerald-50 border-4 border-emerald-600 p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-neutral-950">
@@ -2073,6 +2082,7 @@ export default function ProfileDashboard({
                 </div>
               </form>
             )}
+            </div>
           </div>
           )}
         </div>
