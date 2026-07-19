@@ -36,6 +36,18 @@ class AuthController extends Controller
             && $email
             && str_ends_with($email, '@artvibes.local');
     }
+
+    private function resolveGoogleRedirectUrl(Request $request): string
+    {
+        $configuredRedirect = config('services.google.redirect');
+        $redirectUrl = $configuredRedirect && str_contains((string) $configuredRedirect, 'auth/google/callback')
+            ? (string) $configuredRedirect
+            : $request->getSchemeAndHttpHost() . '/auth/google/callback';
+
+        config(['services.google.redirect' => $redirectUrl]);
+
+        return $redirectUrl;
+    }
     // Cek User Login (Untuk Frontend)
     public function getAuthenticatedUser() {
         return response()->json(['user' => Auth::user()]);
@@ -177,12 +189,13 @@ class AuthController extends Controller
     public function redirectToGoogle(Request $request)
     {
         $action = $request->query('action', 'login');
+        $redirectUrl = $this->resolveGoogleRedirectUrl($request);
 
-        if (empty(config('services.google.client_id')) || empty(config('services.google.client_secret')) || empty(config('services.google.redirect'))) {
+        if (empty(config('services.google.client_id')) || empty(config('services.google.client_secret'))) {
             \Log::error('Google OAuth configuration missing', [
                 'client_id' => !empty(config('services.google.client_id')),
                 'client_secret' => !empty(config('services.google.client_secret')),
-                'redirect' => config('services.google.redirect'),
+                'redirect' => $redirectUrl,
             ]);
 
             return redirect('/login?google_error=' . urlencode('Konfigurasi Google belum siap. Hubungi admin.'));
@@ -194,6 +207,8 @@ class AuthController extends Controller
     }
 
     public function handleGoogleCallback(Request $request) {
+        $this->resolveGoogleRedirectUrl($request);
+
         try {
             $googleUser = Socialite::driver('google')->user();
         } catch (\Throwable $e) {
