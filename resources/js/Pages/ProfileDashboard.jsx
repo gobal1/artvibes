@@ -30,6 +30,16 @@ export default function ProfileDashboard({
   onAuthUpdate,
 }) {
   const marketCurrencySymbol = getNativeCurrencySymbol();
+
+  const resolveAssetUrl = (value) => {
+    if (!value) return '';
+    if (/^https?:\/\//i.test(value)) return value;
+    if (value.startsWith('/')) {
+      return typeof window !== 'undefined' ? `${window.location.origin}${value}` : value;
+    }
+    return value;
+  };
+
   // ========== ALL STATE DECLARATIONS FIRST ==========
   
   // State Navigasi Tab Utama
@@ -1232,7 +1242,7 @@ export default function ProfileDashboard({
 
         </aside>
 
-        <div className="xl:hidden fixed inset-x-0 bottom-0 z-[30] w-full  backdrop-blur !mb-0">
+        <div className="xl:hidden fixed inset-x-0 bottom-0 z-30 w-full backdrop-blur mb-0">
           <div className="grid grid-cols-5 gap-1 px-1 py-1 pb-[max(0.35rem,env(safe-area-inset-bottom))]">
             {sidebarActions.map((item) => {
               const Icon = item.icon;
@@ -1275,7 +1285,7 @@ export default function ProfileDashboard({
             className="pointer-events-none absolute inset-0 opacity-35"
             style={{
               backgroundImage: auth?.user?.profile_background
-                ? `url('${auth.user.profile_background}')`
+                ? `url('${resolveAssetUrl(auth.user.profile_background)}')`
                 : "url('https://images.unsplash.com/photo-1517292987719-0369a794ec0f?auto=format&fit=crop&w=1600&q=80')",
               backgroundSize: 'cover',
               backgroundPosition: 'center',
@@ -1294,12 +1304,12 @@ export default function ProfileDashboard({
             <Edit3 className="h-4 w-4" />
           </button>
 
-          <div className="grid gap-3 md:gap-0 md:grid-cols-[minmax(0,1fr)_280px] items-stretch">
+          <div className="grid gap-3 md:gap-0 md:grid-cols-2 items-stretch">
             <div className="relative z-10 border-2 border-neutral-950 bg-white/45 backdrop-blur-[1px] rounded-2xl md:rounded-r-none p-3.5 pr-12 md:p-4 md:pr-12">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full min-w-0">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-4 border-neutral-950 shrink-0 bg-neutral-200 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] relative ring-2 ring-emerald-500/40">
                   <img
-                    src={(auth && auth.user && auth.user.avatar) ? auth.user.avatar : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80"}
+                    src={(auth && auth.user && auth.user.avatar) ? resolveAssetUrl(auth.user.avatar) : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80"}
                     alt="avatar"
                     className="w-full h-full object-cover"
                   />
