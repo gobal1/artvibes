@@ -36,18 +36,6 @@ class AuthController extends Controller
             && $email
             && str_ends_with($email, '@artvibes.local');
     }
-
-    private function resolveGoogleRedirectUrl(Request $request): string
-    {
-        $configuredRedirect = config('services.google.redirect');
-        $redirectUrl = $configuredRedirect && str_contains((string) $configuredRedirect, 'auth/google/callback')
-            ? (string) $configuredRedirect
-            : $request->getSchemeAndHttpHost() . '/auth/google/callback';
-
-        config(['services.google.redirect' => $redirectUrl]);
-
-        return $redirectUrl;
-    }
     // Cek User Login (Untuk Frontend)
     public function getAuthenticatedUser() {
         return response()->json(['user' => Auth::user()]);
@@ -189,37 +177,13 @@ class AuthController extends Controller
     public function redirectToGoogle(Request $request)
     {
         $action = $request->query('action', 'login');
-        $redirectUrl = $this->resolveGoogleRedirectUrl($request);
-
-        if (empty(config('services.google.client_id')) || empty(config('services.google.client_secret'))) {
-            \Log::error('Google OAuth configuration missing', [
-                'client_id' => !empty(config('services.google.client_id')),
-                'client_secret' => !empty(config('services.google.client_secret')),
-                'redirect' => $redirectUrl,
-            ]);
-
-            return redirect('/login?google_error=' . urlencode('Konfigurasi Google belum siap. Hubungi admin.'));
-        }
-
         session(['google_auth_action' => $action]);
 
         return Socialite::driver('google')->redirect();
     }
 
     public function handleGoogleCallback(Request $request) {
-        $this->resolveGoogleRedirectUrl($request);
-
-        try {
-            $googleUser = Socialite::driver('google')->user();
-        } catch (\Throwable $e) {
-            \Log::error('Google OAuth callback failed', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return redirect('/login?google_error=' . urlencode('Login Google gagal. Silakan coba lagi.'));
-        }
-
+        $googleUser = Socialite::driver('google')->user();
         $action = session()->pull('google_auth_action', 'login');
         $googleId = (string) $googleUser->getId();
         $email = $this->normalizeEmail($googleUser->getEmail());
@@ -388,7 +352,7 @@ class AuthController extends Controller
 
         $avatarFile = $request->file('avatar');
         $path = $avatarFile->store('avatars', 'public');
-        $user->avatar = asset('storage/' . $path);
+        $user->avatar = '/storage/' . $path;
         $user->save();
 
         return response()->json(['success' => true, 'user' => $user]);
@@ -427,13 +391,13 @@ class AuthController extends Controller
         if ($request->hasFile('avatar')) {
             $avatarFile = $request->file('avatar');
             $path = $avatarFile->store('avatars', 'public');
-            $user->avatar = asset('storage/' . $path);
+            $user->avatar = '/storage/' . $path;
         }
 
         if ($request->hasFile('profile_background_file')) {
             $backgroundFile = $request->file('profile_background_file');
             $path = $backgroundFile->store('profile_backgrounds', 'public');
-            $user->profile_background = asset('storage/' . $path);
+            $user->profile_background = '/storage/' . $path;
         } elseif ($request->filled('profile_background_url')) {
             $user->profile_background = $request->input('profile_background_url');
         }
