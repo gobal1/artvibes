@@ -177,13 +177,34 @@ class AuthController extends Controller
     public function redirectToGoogle(Request $request)
     {
         $action = $request->query('action', 'login');
+
+        if (empty(config('services.google.client_id')) || empty(config('services.google.client_secret')) || empty(config('services.google.redirect'))) {
+            \Log::error('Google OAuth configuration missing', [
+                'client_id' => !empty(config('services.google.client_id')),
+                'client_secret' => !empty(config('services.google.client_secret')),
+                'redirect' => config('services.google.redirect'),
+            ]);
+
+            return redirect('/login?google_error=' . urlencode('Konfigurasi Google belum siap. Hubungi admin.'));
+        }
+
         session(['google_auth_action' => $action]);
 
         return Socialite::driver('google')->redirect();
     }
 
     public function handleGoogleCallback(Request $request) {
-        $googleUser = Socialite::driver('google')->user();
+        try {
+            $googleUser = Socialite::driver('google')->user();
+        } catch (\Throwable $e) {
+            \Log::error('Google OAuth callback failed', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect('/login?google_error=' . urlencode('Login Google gagal. Silakan coba lagi.'));
+        }
+
         $action = session()->pull('google_auth_action', 'login');
         $googleId = (string) $googleUser->getId();
         $email = $this->normalizeEmail($googleUser->getEmail());
@@ -352,7 +373,7 @@ class AuthController extends Controller
 
         $avatarFile = $request->file('avatar');
         $path = $avatarFile->store('avatars', 'public');
-        $user->avatar = '/storage/' . $path;
+        $user->avatar = asset('storage/' . $path);
         $user->save();
 
         return response()->json(['success' => true, 'user' => $user]);
@@ -391,13 +412,13 @@ class AuthController extends Controller
         if ($request->hasFile('avatar')) {
             $avatarFile = $request->file('avatar');
             $path = $avatarFile->store('avatars', 'public');
-            $user->avatar = '/storage/' . $path;
+            $user->avatar = asset('storage/' . $path);
         }
 
         if ($request->hasFile('profile_background_file')) {
             $backgroundFile = $request->file('profile_background_file');
             $path = $backgroundFile->store('profile_backgrounds', 'public');
-            $user->profile_background = '/storage/' . $path;
+            $user->profile_background = asset('storage/' . $path);
         } elseif ($request->filled('profile_background_url')) {
             $user->profile_background = $request->input('profile_background_url');
         }

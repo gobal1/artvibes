@@ -16,6 +16,52 @@ export default function ProfileSettingsPage({ auth, navigateTo, onAuthUpdate }) 
     { id: 'system', label: 'Notifikasi Sistem', enabled: false, description: 'Update sistem besar dan status jaringan.' },
   ]);
 
+  const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+  const refreshCsrfCookie = async () => {
+    try {
+      await fetch('/sanctum/csrf-cookie', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+      });
+    } catch (error) {
+      console.warn('Gagal refresh CSRF cookie:', error);
+    }
+  };
+
+  const submitProfileRequest = async (formData) => {
+    await refreshCsrfCookie();
+    let csrfToken = getCsrfToken();
+
+    let response = await fetch('/api/user/profile', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+      },
+      credentials: 'include',
+      body: formData,
+    });
+
+    if (response.status === 419 || response.status === 403) {
+      await refreshCsrfCookie();
+      csrfToken = getCsrfToken();
+
+      response = await fetch('/api/user/profile', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+        },
+        credentials: 'include',
+        body: formData,
+      });
+    }
+
+    return response;
+  };
+
   const handleToggleNotification = (id) => {
     setNotifications((prev) => prev.map((item) => item.id === id ? { ...item, enabled: !item.enabled } : item));
   };
@@ -27,7 +73,6 @@ export default function ProfileSettingsPage({ auth, navigateTo, onAuthUpdate }) 
     setMessage('');
 
     try {
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
       const formData = new FormData();
       formData.append('bio', bio || '');
       if (profileBackgroundFile) {
@@ -39,16 +84,7 @@ export default function ProfileSettingsPage({ auth, navigateTo, onAuthUpdate }) 
         formData.append('avatar', avatarFile);
       }
 
-      const response = await fetch('/api/user/profile', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
-        },
-        credentials: 'include',
-        body: formData,
-      });
-
+      const response = await submitProfileRequest(formData);
       const data = await response.json().catch(() => ({}));
       if (response.ok) {
         setMessage(data.message || 'Profil berhasil disimpan.');
@@ -62,6 +98,8 @@ export default function ProfileSettingsPage({ auth, navigateTo, onAuthUpdate }) 
           }
           onAuthUpdate(data.user);
         }
+      } else if (response.status === 419 || response.status === 403) {
+        setMessage('Sesi login kadaluarsa. Silakan refresh halaman lalu coba lagi.');
       } else {
         setMessage(data.message || 'Gagal menyimpan profil.');
       }
