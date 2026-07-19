@@ -1232,7 +1232,7 @@ export default function ProfileDashboard({
 
         </aside>
 
-        <div className="xl:hidden fixed inset-x-0 bottom-0 z-[20] w-full  backdrop-blur !mb-0">
+        <div className="xl:hidden fixed inset-x-0 bottom-0 z-[30] w-full  backdrop-blur !mb-0">
           <div className="grid grid-cols-5 gap-1 px-1 py-1 pb-[max(0.35rem,env(safe-area-inset-bottom))]">
             {sidebarActions.map((item) => {
               const Icon = item.icon;

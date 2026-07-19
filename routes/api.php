@@ -8,8 +8,8 @@ use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NftController;
 use App\Http\Controllers\Api\PriceController;
 use App\Http\Controllers\ProdukController;
-use App\Http\Controllers\API\LikeController;
-use App\Http\Controllers\API\PinController;
+use App\Http\Controllers\Api\LikeController;
+use App\Http\Controllers\Api\PinController;
 use App\Models\Kategori;
 use App\Http\Controllers\TransaksiController;
 
